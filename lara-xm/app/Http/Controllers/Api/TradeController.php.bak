@@ -1,0 +1,1640 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
+use ShaoZeMing\GeTui\Facade\GeTui;
+
+class TradeController extends Controller
+{
+
+    public function __construct()
+    {
+        $this->middleware('userLoginValidate')->except(['tradeRule','realTimeList','scoreRule','tradeLimit','tradeTip']);
+    }
+
+    /**
+     * description:兑换中心提示
+     * @author Harcourt
+     * @date 2018/10/8
+     */
+    public function tradeTip()
+    {
+        $tip = '!输入值必须是100的整数倍，且范围在500~10000之间';
+        $data['tip'] = $tip;
+        success($data);
+    }
+
+    /**
+     * description:积分倍增规则（激活）
+     * @author Harcourt
+     * @date 2018/8/29
+     */
+    public function tradeRule()
+    {
+        $scoreRule = DB::table('trading_hall_explain')->where('type',1)->pluck('content')->first();
+        success($scoreRule);
+    }
+
+    /**
+     * description:出售T积分
+     * @author Harcourt
+     * @date 2018/8/21
+     */
+
+    public function sale(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+        $num = $request->input('num',0);
+        $password = $request->input('password');
+        if(empty($user_id) || empty($num) || empty($password)){
+            return error('00000','参数不全');
+        }
+        if( $num >10000 || $num < 500 || !is_int($num%100)){
+            return error('99995','输入值在500~10000之间，且为100的整数倍');
+            //请按提示填写
+        }
+
+        $config = DB::table('master_config')->where('code','xm_trade_switch')->first();
+
+        if($config && $config->value == 1){
+            return error('99997','暂时关闭该功能');
+        }
+
+        $status = DB::table('mq_users_extra')->where('user_id',$user_id)->value('status');
+
+        if(empty($status)){
+            return error('40011','未实名认证');
+        }
+        if($status == 2){
+            return error('10005','实名认证信息已提交,请耐心等待审核');
+        }
+
+        $ch_where = [
+            ['user_id',$user_id],
+            ['belong_sys',2]
+        ];
+        $ip = get_client_ip();
+        $safeCheck = DB::table('ip_safecheck_log')->where($ch_where)->first();
+        $now = time();
+        if(empty($safeCheck) || (strcmp($ip,$safeCheck->ip_address) !== 0 || strtotime( $safeCheck->expire_time) <= $now)){
+            return error('10008','需重新认证身份');
+        }
+        if (empty($safeCheck)) {
+            //直接身份验证ip插入
+
+            $check_insert_data = [
+                'user_id' => $user_id,
+                'belong_sys' => 2,
+                'ip_address' => $ip,
+                'check_time' => date('Y-m-d H:i:s', $now),
+                'expire_time' => date('Y-m-d H:i:s', $now + IP_EXPIRE_TIME)
+            ];
+            DB::table('ip_safecheck_log')->insertGetId($check_insert_data, 'log_id');
+        } else {
+            if ($safeCheck && (strcmp($ip, $safeCheck->ip_address) !== 0 || strtotime($safeCheck->expire_time) <= $now)) {
+                $update_insert_data = [
+                    'ip_address' => $ip,
+                    'check_time' => date('Y-m-d H:i:s', $now),
+                    'expire_time' => date('Y-m-d H:i:s', $now + IP_EXPIRE_TIME)
+                ];
+                DB::table('ip_safecheck_log')->where('log_id', $safeCheck->log_id)->update($update_insert_data);
+            }
+
+
+        }
+
+
+        $hasTrade = DB::table('trade')->where('user_id',$user_id)->whereNotIn('trade_status',['3','4'])->first();
+        if($hasTrade){
+            return error('60004','有未完成订单,无法进行出售');
+        }
+
+
+
+        $nowDay = date('Y-m-d',$now);
+        $limitTime = DB::table('master_config')->where('code','deal_open_close_time')->pluck('value')->first();
+        $limitArr = explode('-',$limitTime);
+
+        if(count($limitArr) == 2){
+            $bottom_limit = strtotime($nowDay.' '.$limitArr[0]);
+            $top_limit = strtotime($nowDay.' '.$limitArr[1]);
+
+        }else{
+            $bottom_limit = strtotime($nowDay.' 09:00');
+            $top_limit = strtotime($nowDay.' 17:00');
+        }
+        if($bottom_limit > $now || $top_limit < $now){
+            return error('99997','兑换中心已停止挂卖');
+        }
+
+        $day_start = strtotime($nowDay);
+        $day_end = strtotime($nowDay.'+ 1 day');
+
+        $where = [
+            ['user_id',$user_id],
+            ['trade_status','<=',3],
+            ['trade_gmt_create','>=',$day_start],
+            ['trade_gmt_create','<',$day_end],
+        ];
+
+        $daily_num = DB::table('trade')->selectRaw('sum(trade_num) as daily_num')->where($where)->pluck('daily_num')->first();
+        if($daily_num == null){
+            $daily_num = '0';
+        }
+
+
+        $sell_limit = DB::table('mq_users_limit')->select('daily_deal_sell_max_money as daily_limit','unlimit as useable_t_score','freeze as freeze_t_score')->join('tps','tps.user_id','=','mq_users_limit.user_id')->where('mq_users_limit.user_id',$user_id)->first();
+
+        if(empty($sell_limit)){
+            return error('99998','非法操作');
+        }
+        //个人未设置
+        if($sell_limit->daily_limit == '-1'){
+
+            $group_daily_limit = DB::table('group_limit')->where('user_id',$user_id)->pluck('daily_deal_sell_max_money')->first();
+
+            //服务中心未设置
+            if($group_daily_limit == '-1'){
+
+                $system_daily_limit = DB::table('master_config')->where('code','daily_deal_sell_max_money')->pluck('value')->first();
+                $sell_limit->daily_limit = $system_daily_limit;
+            }else{
+                $sell_limit->daily_limit = $group_daily_limit;
+
+            }
+        }
+
+        //每天余额购买精品商品
+        $orderwhere = [
+            ['order_gmt_pay','>=',$day_start],
+            ['order_gmt_pay','<',$day_end],
+            ['user_id',$user_id],
+            ['order_type',2]
+        ];
+        $orderMoney =  DB::table('orders')->selectRaw('sum(order_money) as orderMoney')->where($orderwhere)->value('orderMoney');
+        if($orderMoney == null){
+            $orderMoney = '0';
+        }
+
+
+        if($num + $daily_num + $orderMoney  > $sell_limit->daily_limit){
+            return error('40019','超出当天T积分买卖限额');
+        }
+
+        $bank = DB::table('user_bankinfo')->select('account as bank_account','bank_name')->where('user_id',$user_id)->first();
+
+        $alipay = DB::table('alipay_account')->select('ac_account as ali_account','ac_owner as ali_owner')->where('user_id',$user_id)->first();
+        if(empty($bank) && empty($alipay)){
+            return error('40027','请先到个人中心去绑定银行卡或者支付宝');
+        }
+
+
+        $costRate = DB::table('master_config')->where('code','xm_trade_cost')->value('value');
+
+        if($costRate == null){
+            $costRate = DEFAULT_COST_RATE;
+        }
+
+        $total_num = $num + $num * $costRate / 100;
+
+        if($sell_limit->useable_t_score < $total_num){
+            return error('40014','余额不足');
+        }
+
+        $pay_password = DB::table('mq_users_extra')->where('user_id',$user_id)->pluck('pay_password')->first();
+        if(empty($pay_password)){
+            return error('40004','请先设置支付密码');
+        }
+        if(strcmp($pay_password,md5($password)) !== 0){
+            return error('40005','支付密码不正确');
+        }
+
+
+        $trade_data = [
+            'user_id'=>$user_id,
+            'trade_status'=>0,
+            'trade_num'=>$num,
+            'trade_gmt_create'=>$now,
+            'cost_rate'=>$costRate
+        ];
+        $trade_data = array_merge($trade_data,(array)$bank,(array)$alipay);
+        DB::beginTransaction();
+        $trade_id = DB::table('trade')->insertGetId($trade_data,'trade_id');
+
+        DB::update('UPDATE xm_tps set unlimit = unlimit - ?,freeze = freeze + ? WHERE user_id = ?',[$total_num,$total_num,$user_id]);
+        if(empty($trade_id)){
+            DB::rollBack();
+            error('99999','操作失败');
+        }else{
+            DB::commit();
+            success();
+        }
+    }
+    public function sale_old(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+        $num = $request->input('num',0);
+        $password = $request->input('password');
+        if(empty($user_id) || empty($num) || empty($password)){
+            return error('00000','参数不全');
+        }
+        if( $num >10000 || $num < 500 || !is_int($num%100)){
+            return error('99995','输入值在500~10000之间，且为100的整数倍');
+            //请按提示填写
+        }
+
+        $config = DB::table('master_config')->where('code','xm_trade_switch')->first();
+
+        if($config && $config->value == 1){
+            return error('99997','暂时关闭该功能');
+        }
+
+        $status = DB::table('mq_users_extra')->where('user_id',$user_id)->value('status');
+
+        if(empty($status)){
+            return error('40011','未实名认证');
+        }
+        if($status == 2){
+            return error('10005','实名认证信息已提交,请耐心等待审核');
+        }
+
+        $ch_where = [
+            ['user_id',$user_id],
+            ['belong_sys',2]
+        ];
+        $ip = get_client_ip();
+        $safeCheck = DB::table('ip_safecheck_log')->where($ch_where)->first();
+        $now = time();
+        if(empty($safeCheck) || (strcmp($ip,$safeCheck->ip_address) !== 0 || strtotime( $safeCheck->expire_time) <= $now)){
+            return error('10008','需重新认证身份');
+        }
+        if (empty($safeCheck)) {
+            //直接身份验证ip插入
+
+            $check_insert_data = [
+                'user_id' => $user_id,
+                'belong_sys' => 2,
+                'ip_address' => $ip,
+                'check_time' => date('Y-m-d H:i:s', $now),
+                'expire_time' => date('Y-m-d H:i:s', $now + IP_EXPIRE_TIME)
+            ];
+            DB::table('ip_safecheck_log')->insertGetId($check_insert_data, 'log_id');
+        } else {
+            if ($safeCheck && (strcmp($ip, $safeCheck->ip_address) !== 0 || strtotime($safeCheck->expire_time) <= $now)) {
+                $update_insert_data = [
+                    'ip_address' => $ip,
+                    'check_time' => date('Y-m-d H:i:s', $now),
+                    'expire_time' => date('Y-m-d H:i:s', $now + IP_EXPIRE_TIME)
+                ];
+                DB::table('ip_safecheck_log')->where('log_id', $safeCheck->log_id)->update($update_insert_data);
+            }
+
+
+        }
+
+
+        $hasTrade = DB::table('trade')->where('user_id',$user_id)->whereNotIn('trade_status',['3','4'])->first();
+        if($hasTrade){
+            return error('60004','有未完成订单,无法进行出售');
+        }
+
+
+
+        $nowDay = date('Y-m-d',$now);
+        $limitTime = DB::table('master_config')->where('code','deal_open_close_time')->pluck('value')->first();
+        $limitArr = explode('-',$limitTime);
+
+        if(count($limitArr) == 2){
+            $bottom_limit = strtotime($nowDay.' '.$limitArr[0]);
+            $top_limit = strtotime($nowDay.' '.$limitArr[1]);
+
+        }else{
+            $bottom_limit = strtotime($nowDay.' 08:00');
+            $top_limit = strtotime($nowDay.' 20:00');
+        }
+        if($bottom_limit > $now || $top_limit < $now){
+            return error('99997','兑换中心已关闭');
+        }
+
+        $day_start = strtotime($nowDay);
+        $day_end = strtotime($nowDay.'+ 1 day');
+
+        $where = [
+            ['user_id',$user_id],
+            ['trade_status','<=',3],
+            ['trade_gmt_create','>=',$day_start],
+            ['trade_gmt_create','<',$day_end],
+        ];
+
+        $daily_num = DB::table('trade')->selectRaw('sum(trade_num) as daily_num')->where($where)->pluck('daily_num')->first();
+        if($daily_num == null){
+            $daily_num = '0';
+        }
+
+
+        $sell_limit = DB::table('mq_users_limit')->select('daily_deal_sell_max_money as daily_limit','unlimit as useable_t_score','freeze as freeze_t_score')->join('tps','tps.user_id','=','mq_users_limit.user_id')->where('mq_users_limit.user_id',$user_id)->first();
+
+        if(empty($sell_limit)){
+            return error('99998','非法操作');
+        }
+        //个人未设置
+        if($sell_limit->daily_limit == '-1'){
+
+            $group_daily_limit = DB::table('group_limit')->where('user_id',$user_id)->pluck('daily_deal_sell_max_money')->first();
+
+            //服务中心未设置
+            if($group_daily_limit == '-1'){
+
+                $system_daily_limit = DB::table('master_config')->where('code','daily_deal_sell_max_money')->pluck('value')->first();
+                $sell_limit->daily_limit = $system_daily_limit;
+            }else{
+                $sell_limit->daily_limit = $group_daily_limit;
+
+            }
+        }
+
+        //每天余额购买精品商品
+        $orderwhere = [
+            ['order_gmt_pay','>=',$day_start],
+            ['order_gmt_pay','<',$day_end],
+            ['user_id',$user_id],
+            ['order_type',2]
+        ];
+        $orderMoney =  DB::table('orders')->selectRaw('sum(order_money) as orderMoney')->where($orderwhere)->value('orderMoney');
+        if($orderMoney == null){
+            $orderMoney = '0';
+        }
+
+
+        if($num + $daily_num + $orderMoney  > $sell_limit->daily_limit){
+            return error('40019','超出当天T积分买卖限额');
+        }
+
+        $bank = DB::table('user_bankinfo')->select('account as bank_account','bank_name')->where('user_id',$user_id)->first();
+
+        $alipay = DB::table('alipay_account')->select('ac_account as ali_account','ac_owner as ali_owner')->where('user_id',$user_id)->first();
+        if(empty($bank) && empty($alipay)){
+            return error('40027','请先到个人中心去绑定银行卡或者支付宝');
+        }
+
+
+        $costRate = DB::table('master_config')->where('code','xm_trade_cost')->value('value');
+
+        if($costRate == null){
+            $costRate = DEFAULT_COST_RATE;
+        }
+
+        $total_num = $num + $num * $costRate / 100;
+
+        if($sell_limit->useable_t_score < $total_num){
+            return error('40014','余额不足');
+        }
+
+        $pay_password = DB::table('mq_users_extra')->where('user_id',$user_id)->pluck('pay_password')->first();
+        if(empty($pay_password)){
+            return error('40004','请先设置支付密码');
+        }
+        if(strcmp($pay_password,md5($password)) !== 0){
+            return error('40005','支付密码不正确');
+        }
+
+
+        $trade_data = [
+            'user_id'=>$user_id,
+            'trade_status'=>0,
+            'trade_num'=>$num,
+            'trade_gmt_create'=>$now,
+            'cost_rate'=>$costRate
+        ];
+        $trade_data = array_merge($trade_data,(array)$bank,(array)$alipay);
+        DB::beginTransaction();
+        $trade_id = DB::table('trade')->insertGetId($trade_data,'trade_id');
+
+        DB::update('UPDATE xm_tps set unlimit = unlimit - ?,freeze = freeze + ? WHERE user_id = ?',[$total_num,$total_num,$user_id]);
+        if(empty($trade_id)){
+            DB::rollBack();
+            error('99999','操作失败');
+        }else{
+            DB::commit();
+            success();
+        }
+    }
+    /**
+     * description:清除匹配记录
+     * @author Harcourt
+     * @date 2018/8/27
+     */
+    public function clearMatch(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+
+        $redis_name = 'trade-'.$user_id;
+
+        if(Redis::exists($redis_name)){
+            $trade = Redis::get($redis_name);
+            if($trade){
+                $res = json_decode($trade, true);
+                DB::table('trade')->where('trade_status', 1)->whereIn('trade_id', json_decode($res['tradeIds']))->update(['trade_status' => 0]);
+                Redis::del($redis_name);
+            }
+        }
+        success();
+    }
+
+    /**
+     * description:检查是否存在过匹配记录
+     * @author Harcourt
+     * @date 2018/8/27
+     */
+    public function checkTrade(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+        if(empty($user_id)){
+            return error('00000','参数不全');
+        }
+        $redis_name = 'trade-'.$user_id;
+        $has = '0';
+        $num = '0';
+        $trades = [];
+        if(Redis::exists($redis_name)){
+            $trade = Redis::get($redis_name);
+            if($trade){
+                $res = json_decode($trade, true);
+                DB::table('trade')->where('trade_status', 1)->whereIn('trade_id', json_decode($res['tradeIds']))->update(['trade_status' => 0]);
+                Redis::del($redis_name);
+            }
+
+//            $res = Redis::get($redis_name);
+//            $res = json_decode($res,true);
+//            if($res){
+//                $num = $res['num'];
+//                $trades = DB::table('trade')->whereIn('trade_id',json_decode($res['tradeIds']))->get()->map(function ($value){return (array)$value;})->toArray();
+//                $count = count($trades);
+//                foreach ($trades as $key=>$trade) {
+//                    if($trade['trade_status'] == 1){
+//                        $saleUser = DB::table('users')->select('user_name','mobile_phone')->where('user_id',$trade['user_id'])->first();
+//                        if($saleUser){
+//                            $trades[$key]['user_name'] = $saleUser->user_name;
+//                            $trades[$key]['mobile'] = $saleUser->mobile_phone;
+//                        }else{
+//                            $trades[$key]['user_name'] = '无';
+//                            $trades[$key]['mobile'] = '无';
+//                        }
+//
+//
+//
+//                    }else{
+//                        $count -= 1;
+//                    }
+//
+//                }
+//                if($count >= 1){
+//                    $has = '1';
+//                }else{
+//                    $trades = [];
+//                    Redis::del($redis_name);
+//                }
+//            }
+
+        }
+
+        $data = [
+            'has'=>$has,
+            'num'=>$num,
+            'trades'=>$trades
+        ];
+        success($data);
+
+    }
+
+    /**
+     * description:购买匹配 redis
+     * @author Harcourt
+     * @date 2018/8/21
+     */
+    public function matchTrade(Request $request)
+    {
+
+        $user_id = $request->input('user_id',0);
+        $num = $request->input('num',0);
+
+        if(empty($num) || empty($user_id)){
+            return error('00000','参数不全');
+        }
+        if( $num > 10000 || $num < 500 || !is_int($num%100)){
+            return error('99995','输入值在500~10000之间，且为100的整数倍');
+            //请按提示填写
+        }
+
+        $redis_name = 'trade-'.$user_id;
+        if(Redis::exists($redis_name)){
+            return error('99997','暂时无法操作');
+        }
+
+        $config = DB::table('master_config')->where('code','xm_trade_switch')->first();
+
+        if($config && $config->value == 1){
+            return error('99997','暂时关闭该功能');
+        }
+
+        $status = DB::table('mq_users_extra')->where('user_id',$user_id)->value('status');
+
+        if(empty($status)){
+            return error('40011','未实名认证');
+        }
+        if($status == 2){
+            return error('10005','实名认证信息已提交,请耐心等待审核');
+        }
+        $now = time();
+        $nowDay = date('Y-m-d',$now);
+        $limitTime = DB::table('master_config')->where('code','deal_open_close_time')->pluck('value')->first();
+        $limitArr = explode('-',$limitTime);
+
+        if(count($limitArr) == 2){
+            $bottom_limit = strtotime($nowDay.' '.$limitArr[0]);
+            $top_limit = strtotime($nowDay.' '.$limitArr[1]);
+
+        }else{
+            $bottom_limit = strtotime($nowDay.' 08:00');
+            $top_limit = strtotime($nowDay.' 20:00');
+        }
+        if($bottom_limit > $now || $top_limit < $now){
+            return error('99997','兑换中心已关闭');
+        }
+
+
+        $daily_limit = DB::table('mq_users_limit')->where('user_id',$user_id)->value('daily_deal_buy_max_money');
+        if($daily_limit == null){
+            $daily_limit = '-1';
+        }
+        //个人未设置
+        if($daily_limit == '-1'){
+
+            $group_daily_limit = DB::table('group_limit')->where('user_id',$user_id)->pluck('daily_deal_buy_max_money')->first();
+
+            //服务中心未设置
+            if($group_daily_limit == '-1'){
+
+                $system_daily_limit = DB::table('master_config')->where('code','daily_deal_buy_max_money')->pluck('value')->first();
+                $daily_limit = $system_daily_limit;
+            }else{
+                $daily_limit = $group_daily_limit;
+
+            }
+        }
+
+        $day_start = strtotime($nowDay);
+        $day_end = strtotime($nowDay.'+ 1 day');
+
+        $where = [
+            ['buy_user_id',$user_id],
+            ['trade_gmt_commit','>=',$day_start],
+            ['trade_gmt_commit','<',$day_end],
+        ];
+        $whereIn = [1,2,5];
+        $daily_num = DB::table('trade')->selectRaw('sum(trade_num) as daily_num')->where($where)->whereIn('trade_status',$whereIn)->pluck('daily_num')->first();
+
+        if($daily_limit < $daily_num + $num){
+            return error('40019','超出当天T积分买卖限额');
+        }
+
+
+
+
+
+        $trades = $this->getPropTrade($user_id,$num);
+        if(empty($trades)){
+            return error('60002','未找到匹配的订单');
+        }
+        //加入求购记录
+        $insert_data = [
+            'user_id'=>$user_id,
+            'buy_num'=>$num,
+            'tb_gmt_create'=>$now
+        ];
+        DB::table('trade_buy')->insertGetId($insert_data,'tb_id');
+
+
+
+
+        $tradeIds = array_column($trades,'trade_id');
+        $data['num'] = $num;
+        $data['tradeIds'] = json_encode($tradeIds);
+        $data['expire_time'] = time()+ORDER_EXPIRE_TIME;
+        Redis::set($redis_name,json_encode($data));
+
+        foreach ($trades as $key=>$trade) {
+            $saleUser = DB::table('users')->select('user_name','mobile_phone')->where('user_id',$trade['user_id'])->first();
+            if($saleUser){
+                $trades[$key]['user_name'] = $saleUser->user_name;
+                $trades[$key]['mobile'] = $saleUser->mobile_phone;
+            }else{
+                $trades[$key]['user_name'] = '无';
+                $trades[$key]['mobile'] = '无';
+            }
+
+            if($trades[$key]['ali_owner'] == '无'){
+                $name = DB::table('mq_users_extra')->where('user_id',$trade['user_id'])->value('real_name');
+                if($name == null){
+                    $name = '无';
+                }
+                $trades[$key]['ali_owner'] = $name;
+
+            }
+
+        }
+
+        success($trades);
+    }
+    public function matchTrade_old(Request $request)
+    {
+
+        $user_id = $request->input('user_id',0);
+        $num = $request->input('num',0);
+
+        if(empty($num) || empty($user_id)){
+            return error('00000','参数不全');
+        }
+        if( $num > 10000 || $num < 500 || !is_int($num%100)){
+            return error('99995','输入值在500~10000之间，且为100的整数倍');
+            //请按提示填写
+        }
+
+        $redis_name = 'trade-'.$user_id;
+        if(Redis::exists($redis_name)){
+            return error('99997','暂时无法操作');
+        }
+
+        $config = DB::table('master_config')->where('code','xm_trade_switch')->first();
+
+        if($config && $config->value == 1){
+            return error('99997','暂时关闭该功能');
+        }
+
+        $status = DB::table('mq_users_extra')->where('user_id',$user_id)->value('status');
+
+        if(empty($status)){
+            return error('40011','未实名认证');
+        }
+        if($status == 2){
+            return error('10005','实名认证信息已提交,请耐心等待审核');
+        }
+        $now = time();
+        $nowDay = date('Y-m-d',$now);
+        $limitTime = DB::table('master_config')->where('code','deal_open_close_time')->pluck('value')->first();
+        $limitArr = explode('-',$limitTime);
+
+        if(count($limitArr) == 2){
+            $bottom_limit = strtotime($nowDay.' '.$limitArr[0]);
+            $top_limit = strtotime($nowDay.' '.$limitArr[1]);
+
+        }else{
+            $bottom_limit = strtotime($nowDay.' 08:00');
+            $top_limit = strtotime($nowDay.' 20:00');
+        }
+        if($bottom_limit > $now || $top_limit < $now){
+            return error('99997','兑换中心已关闭');
+        }
+
+
+        $daily_limit = DB::table('mq_users_limit')->where('user_id',$user_id)->value('daily_deal_buy_max_money');
+        if($daily_limit == null){
+            $daily_limit = '-1';
+        }
+        //个人未设置
+        if($daily_limit == '-1'){
+
+            $group_daily_limit = DB::table('group_limit')->where('user_id',$user_id)->pluck('daily_deal_buy_max_money')->first();
+
+            //服务中心未设置
+            if($group_daily_limit == '-1'){
+
+                $system_daily_limit = DB::table('master_config')->where('code','daily_deal_buy_max_money')->pluck('value')->first();
+                $daily_limit = $system_daily_limit;
+            }else{
+                $daily_limit = $group_daily_limit;
+
+            }
+        }
+
+        $day_start = strtotime($nowDay);
+        $day_end = strtotime($nowDay.'+ 1 day');
+
+        $where = [
+            ['buy_user_id',$user_id],
+            ['trade_gmt_commit','>=',$day_start],
+            ['trade_gmt_commit','<',$day_end],
+        ];
+        $whereIn = [1,2,5];
+        $daily_num = DB::table('trade')->selectRaw('sum(trade_num) as daily_num')->where($where)->whereIn('trade_status',$whereIn)->pluck('daily_num')->first();
+
+        if($daily_limit < $daily_num + $num){
+            return error('40019','超出当天T积分买卖限额');
+        }
+
+
+
+
+
+        $trades = $this->getPropTrade($user_id,$num);
+        if(empty($trades)){
+            return error('60002','未找到匹配的订单');
+        }
+        //加入求购记录
+        $insert_data = [
+            'user_id'=>$user_id,
+            'buy_num'=>$num,
+            'tb_gmt_create'=>$now
+        ];
+        DB::table('trade_buy')->insertGetId($insert_data,'tb_id');
+
+
+
+
+        $tradeIds = array_column($trades,'trade_id');
+        $data['num'] = $num;
+        $data['tradeIds'] = json_encode($tradeIds);
+        $data['expire_time'] = time()+ORDER_EXPIRE_TIME;
+        Redis::set($redis_name,json_encode($data));
+
+        foreach ($trades as $key=>$trade) {
+            $saleUser = DB::table('users')->select('user_name','mobile_phone')->where('user_id',$trade['user_id'])->first();
+            if($saleUser){
+                $trades[$key]['user_name'] = $saleUser->user_name;
+                $trades[$key]['mobile'] = $saleUser->mobile_phone;
+            }else{
+                $trades[$key]['user_name'] = '无';
+                $trades[$key]['mobile'] = '无';
+            }
+
+            if($trades[$key]['ali_owner'] == '无'){
+                $name = DB::table('mq_users_extra')->where('user_id',$trade['user_id'])->value('real_name');
+                if($name == null){
+                    $name = '无';
+                }
+                $trades[$key]['ali_owner'] = $name;
+
+            }
+
+        }
+
+        success($trades);
+    }
+
+    /**
+     * description:按最大值查询最佳匹配
+     * @param $user_id  进行查找匹配的用户id
+     * @param int $num  数额
+     * @param array $res 存储查找到的订单
+     * @return array
+     * @author Harcourt
+     * @date 2018/8/28
+     */
+    function getPropTrade($user_id,$num = 0, $res = []){
+        if($num <= 0){
+            return $res;
+        }
+        $where = [
+            ['trade_status',0],
+            ['user_id','<>',$user_id],
+            ['trade_num','<=',$num]
+        ];
+        $trade = DB::table('trade')->where($where)->orderBy('trade_num','desc')->orderBy('trade_id','desc')->first();
+
+        if(empty($trade)){
+            return $res;
+        }else{
+            DB::table('trade')->where('trade_id',$trade->trade_id)->update(['trade_status'=>1]);
+            $trade->trade_status = 1;
+            $res[] = (array)$trade;
+            $num = $num - $trade->trade_num;
+            $res = $this->getPropTrade($user_id,$num,$res);
+            return $res;
+        }
+
+    }
+
+    /**
+     * description:交易实时信息
+     * @author Harcourt
+     * @date 2018/8/28
+     */
+    public function realTimeList(Request $request)
+    {
+        $page = $request->input('page',0);
+        $limit = 200;
+        $offset = $page * $limit;
+        $now = time();
+        $nowDay = date('Y-m-d',$now);
+        $day_start = strtotime($nowDay);
+        $day_end = strtotime($nowDay.'+ 1 day');
+        $rwhere = [
+            ['trade_status',3],
+            ['trade_num','>=',500],
+            ['trade_gmt_sure','>=',$day_start],
+            ['trade_gmt_sure','<',$day_end],
+        ];
+        $lists = DB::table('trade')->select('mobile_phone','trade_num','trade_gmt_sure')->where($rwhere)->orderBy('trade_id','desc')->get();
+        //->offset($offset)->limit($limit)
+        if(empty($lists)){
+            return error('60003','暂无交易信息');
+        }
+        foreach ($lists as $list) {
+            $list->mobile_phone = substr( $list->mobile_phone, 0, 3).'****'.substr( $list->mobile_phone, 7);
+            $list->trade_gmt_sure = date('y/m/d H:i',$list->trade_gmt_sure);
+            $list->status = '交易完成';
+        }
+
+//        $twhere = [
+//            ['trade_status',3],
+//            ['trade_gmt_sure','>=',$day_start],
+//            ['trade_gmt_sure','<',$day_end],
+//            ['trade_num','>=',500]
+//        ];
+//        $dayNum = DB::table('trade')->selectRaw('count( *) as dayNum')->where($twhere)->pluck('dayNum')->first();
+        $dayNum = DB::table('trade')->where($rwhere)->count();
+        $fakeNum = DB::table('master_config')->where('code','trade_volume')->value('value');
+        if($fakeNum == null){
+            $fakeNum = 0;
+        }
+        if($dayNum>=1){
+            $totalAmount = $dayNum + $fakeNum;
+        }else{
+            $totalAmount = $dayNum;
+        }
+        $data['totalAmount'] = $totalAmount;
+//        $res = array_merge($lists->toArray(),$lists->toArray(),$lists->toArray(),$lists->toArray());
+//        dd($res);
+        $data['list'] = $lists;
+//        $data['list'] = $res;
+        success($data);
+    }
+
+    /**
+     * description:上传转账凭证
+     * @author Harcourt
+     * @date 2018/8/28
+     */
+    public function uploadVoucher(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+        $trade_id = $request->input('trade_id',0);
+        $voucher = $request->input('voucher');
+        if(empty($user_id) || empty($trade_id) || empty($voucher)){
+            return error('00000','参数不全');
+        }
+        $mobile_phone = DB::table('users')->where('user_id',$user_id)->value('mobile_phone');
+        if(empty($mobile_phone)){
+            return error('99998','非法操作');
+        }
+        $trade = DB::table('trade')->where('trade_id',$trade_id)->first();
+        if(empty($trade) || ($trade->trade_status != 1 && $trade->trade_status != 5) || $trade->user_id == $user_id){
+            return error('99998','非法操作');
+        }
+        $toUser = DB::table('users')->select('clientid','device')->where('user_id',$trade->user_id)->first();
+        if(empty($toUser)){
+            return error('99998','非法操作');
+        }
+
+
+        $now = time();
+        $update_data = [
+            'buy_user_id'=>$user_id,
+            'mobile_phone'=>$mobile_phone,
+            'trade_voucher'=>$voucher,
+            'trade_status'=>2,
+            'trade_gmt_commit'=>$now
+        ];
+        $aff_row = DB::table('trade')->where('trade_id',$trade_id)->update($update_data);
+        if(empty($aff_row)){
+            error('99999','操作失败');
+        }else{
+            success();
+
+            if($toUser){
+                $title = 'T积分交易通知';
+
+                $content = '您的T积分已卖出，请到兑换中心查看';
+
+                $mtype = '3';
+                $custom_content = ['id' => $trade_id, 'type' => $mtype, 'content' => $content,'title'=>$title];
+
+                $push_data = array(
+                    'user_id' => $trade->user_id,
+                    'm_type' => $mtype,
+                    'o_id'=>$trade_id,
+                    'm_title' => $title,
+                    'm_read' => '1',
+                    'm_content' => $content,
+                    'm_gmt_create' => $now
+                );
+                $message_id = DB::table('message')->insertGetId($push_data,'m_id');
+                if($message_id && $toUser->clientid){
+//                    $bol = $toUser->device=='android'?true:false;
+                    $bol = false;
+                    GeTui::push($toUser->clientid,$custom_content,$bol);
+                }
+
+            }
+
+        }
+    }
+    /**
+     * description:确认完成交易
+     * @author Harcourt
+     * @date 2018/8/28
+     */
+    public function confirmTrade(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+        $trade_id = $request->input('trade_id',0);
+        if(empty($user_id) || empty($trade_id) ){
+            return error('00000','参数不全');
+        }
+
+
+
+        $trade = DB::table('trade')->where('trade_id',$trade_id)->first();
+        if(empty($trade) || ($trade->trade_status != 2 && $trade->trade_status != 5) || $trade->user_id != $user_id || empty($trade->buy_user_id)){
+            return error('99998','非法操作');
+        }
+        $tps = DB::table('tps')->select('unlimit','freeze')->where('user_id',$user_id)->first();
+
+        if(empty($tps) || $tps->freeze < $trade->trade_num){
+            return error('99998','非法操作');
+        }
+        $to_user_t = DB::table('tps')->select('unlimit','freeze')->where('user_id',$trade->buy_user_id)->first();
+        if(empty($to_user_t)){
+            return error('99998','非法操作');
+        }
+
+
+
+
+        $toUserTotal_t = $to_user_t->unlimit + $to_user_t->freeze;
+        $to_user_name = DB::table('users')->where('user_id',$trade->buy_user_id)->pluck('user_name')->first();
+
+        $userTotal_t = $tps->unlimit + $tps->freeze;
+
+        $now = time();
+        $update_data = [
+            'trade_status'=>3,
+            'trade_gmt_sure'=>$now
+        ];
+        $cost_num = $trade->trade_num * $trade->cost_rate/100;
+
+        $total_num = $trade->trade_num + $cost_num;
+        $t_all = DB::table('master_config')->where('code','xm_t_all')->value('amount');
+        if($t_all == null){
+            $t_all = 0;
+        }
+        $redis_name = 'confirmTrade-'.$user_id.'-'.$trade_id;
+
+        if(Redis::exists($redis_name)){
+            return error('99994','处理中...');
+        }else{
+            Redis::set($redis_name,'1');
+        }
+        DB::beginTransaction();
+        $aff_row = DB::table('trade')->where('trade_id',$trade_id)->update($update_data);
+        if(empty($aff_row)){
+            DB::rollBack();
+            Redis::del($redis_name);
+            return error('99999','操作失败');
+        }
+
+        DB::update('UPDATE xm_tps SET freeze = freeze - ? WHERE user_id = ?',[$total_num,$user_id]);
+        DB::update('UPDATE xm_tps SET unlimit = unlimit + ? WHERE user_id = ?',[$trade->trade_num,$trade->buy_user_id]);
+        DB::update('UPDATE xm_master_config SET amount = amount + ? WHERE code = ?',[$cost_num,'xm_t_all']);
+
+        $flow_data = [
+            'user_id'=>$user_id,
+            'type'=>2,
+            'status'=>2,
+            'amount'=>$trade->trade_num,
+            'surplus'=>$userTotal_t - $trade->trade_num - $cost_num,
+            'notes'=>'T积分出售给'.$to_user_name.'--'.$trade->trade_num,
+            'create_at'=>$now,
+            'target_type'=>4,
+            'target_id'=>$trade_id
+        ];
+        $foid1 = DB::table('flow_log')->insertGetId($flow_data,'foid');
+        $flow_data['user_id'] = $trade->buy_user_id;
+        $flow_data['status'] = 1;
+        $flow_data['surplus'] = $toUserTotal_t + $trade->trade_num;
+        $flow_data['notes'] = '购买T积分--'.$trade->trade_num;
+        $foid2 = DB::table('flow_log')->insertGetId($flow_data,'foid');
+
+
+        if($cost_num){
+            //出售方支付手续费
+            $flow_data['user_id'] = $user_id;
+            $flow_data['type'] = 2;
+            $flow_data['status'] = 2;
+            $flow_data['amount'] =$cost_num;
+            $flow_data['surplus'] = $userTotal_t - $trade->trade_num - $cost_num;
+            $flow_data['notes'] = '交易手续费';
+            $foid3 = DB::table('flow_log')->insertGetId($flow_data,'foid');
+
+            //平台获取手续费
+            $flow_data['user_id'] = 0;
+            $flow_data['type'] = 2;
+            $flow_data['status'] = 1;
+            $flow_data['amount'] =$cost_num;
+            $flow_data['surplus'] = $t_all + $cost_num;
+            $flow_data['notes'] = '交易手续费';
+            $flow_data['isall'] = 1;
+            $foid4 = DB::table('flow_log')->insertGetId($flow_data,'foid');
+            if(empty($foid3) || empty($foid4)){
+                DB::rollBack();
+                Redis::del($redis_name);
+                error('99999','操作失败');
+            }
+        }
+
+
+
+        if(empty($foid1) || empty($foid2)){
+            DB::rollBack();
+            Redis::del($redis_name);
+            error('99999','操作失败');
+        }else{
+            DB::commit();
+            Redis::del($redis_name);
+            success();
+        }
+
+
+    }
+    /**
+     * description:记录列表
+     * @author Harcourt
+     * @date 2018/8/28
+     */
+    public function recordList(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+        $type = $request->input('type',0);//1、出售2、求购
+        $page = $request->input('page',0);
+
+        if(empty($user_id) || !in_array($type,[1,2])){
+            return error('00000','参数不全');
+        }
+        $limit = 20;
+        $offset = $limit * $page;
+        if($type == 1){
+            $fieldName = 'user_id';
+            $joinFieldName = 'buy_user_id';
+
+        }else{
+            $fieldName = 'buy_user_id';
+            $joinFieldName = 'user_id';
+
+        }
+        $where = [
+            ['trade.'.$fieldName,$user_id],
+            ['trade_status','!=',4]
+        ];
+//        $lists = DB::table('trade')->select('trade_id','users.user_name','trade_num','trade_gmt_create','trade_status','trade_voucher')->leftJoin('users', function($join,$joinFieldName,$fieldName,$user_id) {$join->on('users.user_id', '=', 'trade.'.$joinFieldName)->on('trade.trade_status', '!=', '4')->on('trade.'.$fieldName,$user_id); })->get();
+
+        $lists = DB::table('trade')->select('user_id','trade_id','trade_num','trade_gmt_create','trade_gmt_commit','trade_status','trade_voucher','buy_user_id','bank_account','bank_name','ali_account','ali_owner')->where($where)->orderBy('trade_id','desc')->offset($offset)->limit($limit)->get();
+        $now = time();
+        foreach ($lists as $list) {
+            $list->trade_gmt_create = date('Y-m-d H:i:s',$list->trade_gmt_create);
+            $list->trade_voucher = strpos_domain($list->trade_voucher);
+            if($list->buy_user_id){
+                if($type == 1){
+                    $user_name = DB::table('users')->where('user_id',$list->buy_user_id)->value('user_name');
+                }else{
+                    $user_name = DB::table('users')->where('user_id',$list->user_id)->value('user_name');
+                }
+                $list->user_name = $user_name;
+
+            }else{
+                $list->user_name = '无';
+            }
+            if($list->ali_owner == '无'){
+                $name = DB::table('mq_users_extra')->where('user_id',$list->user_id)->value('real_name');
+                if($name == null){
+                    $name = '无';
+                }
+                $list->ali_owner = $name;
+
+            }
+            $saleMobile = DB::table('users')->where('user_id',$list->user_id)->value('mobile_phone');
+            $list->mobile = $saleMobile;
+            if($list->trade_status == 2){
+                $list->trade_gmt_commit = $list->trade_gmt_commit + AUTO_CONFIRM_TRADE - $now;
+            }
+        }
+        success($lists);
+    }
+
+    /**
+     * description:有误
+     * @author Harcourt
+     * @date 2018/8/28
+     */
+    public function doWrong(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+        $trade_id = $request->input('trade_id',0);
+        if(empty($user_id) || empty($trade_id) ){
+            return error('00000','参数不全');
+        }
+        $trade = DB::table('trade')->where('trade_id',$trade_id)->first();
+        if(empty($trade) || $trade->trade_status != 2 || $trade->user_id != $user_id || empty($trade->buy_user_id)){
+            return error('99998','非法操作');
+        }
+        $update_data = [
+            'trade_status'=>5,
+            'trade_gmt_sure'=>time()
+        ];
+        $aff_row = DB::table('trade')->where('trade_id',$trade_id)->update($update_data);
+        if(empty($aff_row)){
+            error('99999','操作失败');
+        }else{
+            success([],'客服将在24小时内处理,请耐心等待');
+
+        }
+    }
+
+    /**
+     * description:取消交易
+     * @author Harcourt
+     * @date 2018/8/29
+     */
+    public function cancelTrade(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+        $trade_id = $request->input('trade_id',0);
+        if(empty($user_id) || empty($trade_id) ){
+            return error('00000','参数不全');
+        }
+        $trade = DB::table('trade')->where('trade_id',$trade_id)->first();
+        if(empty($trade) || $trade->trade_status != 0 || $trade->user_id != $user_id || $trade->buy_user_id){
+            return error('99998','非法操作');
+        }
+        $cost_num = $trade->trade_num * $trade->cost_rate /100;
+        $total_num = $cost_num + $trade->trade_num;
+        DB::beginTransaction();
+        $aff_row1 = DB::table('trade')->where('trade_id',$trade_id)->update(['trade_status'=>4]);
+        $aff_row2 = DB::update('UPDATE xm_tps set unlimit = unlimit + ?,freeze = freeze - ? WHERE user_id = ?',[$total_num,$total_num,$user_id]);
+        if(empty($aff_row1) || empty($aff_row2)){
+            DB::rollBack();
+            error('99999','操作失败');
+        }else{
+            DB::commit();
+            success();
+        }
+
+    }
+
+    /**
+     * description:交易允许时间
+     * @author Harcourt
+     * @date 2018/8/29
+     */
+    public function tradeLimit()
+    {
+        $limitTime = DB::table('master_config')->where('code','deal_open_close_time')->pluck('value')->first();
+        $timeArr = explode('-',$limitTime);
+        if(count($timeArr) != 2){
+            $limitTime = TRADE_LIMIT_TIME;
+        }
+        success($limitTime);
+    }
+    /**
+     * description:积分倍增规则（激活）
+     * @author Harcourt
+     * @date 2018/8/29
+     */
+    public function scoreRule()
+    {
+        $scoreRule = DB::table('trading_hall_explain')->where('type',3)->pluck('content')->first();
+        success($scoreRule);
+    }
+
+
+    /**
+     * description:积分倍增
+     * @author Harcourt
+     * @date 2018/8/17
+     */
+    public function activate(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+        $account = $request->input('account');
+        $m_score = $request->input('m_score');
+        $consume_score = $request->input('consume_score');
+        $password = $request->input('password');
+        if(empty($user_id) || empty($account) || empty($m_score) || empty($consume_score) || empty($password)){
+            return error('00000','参数不全');
+        }
+
+        $total_score = $m_score + $consume_score;
+        if($total_score % 100 != 0){
+            return error('99995','消费激活总数量必须为100的整数倍');
+        }
+
+        $config = DB::table('master_config')->where('code','xm_trade_switch')->first();
+
+        if($config && $config->value == 1){
+            return error('99997','暂时关闭该功能');
+        }
+
+        $masterConfigs = DB::table('master_config')->where('tip','c')->get();
+
+        if(empty($masterConfigs)){
+            return error('99998','非法操作');
+        }
+
+        $rate = $m_score / $consume_score;
+        $min = '0';
+        $max = '0';
+        $activateRate = '0';
+        $totalRate = '0';
+        $firstRate = '0';
+        $leftRate = '0';
+        $couponRate = '0';
+        foreach ($masterConfigs as $masterConfig) {
+            if($masterConfig->code == 'precharge_min'){
+                $min = $masterConfig->value;
+            }
+            if($masterConfig->code == 'precharge_max'){
+                $max = $masterConfig->value;
+            }
+            if($masterConfig->code == 'precharge_propo'){
+                $aRate = explode(':',$masterConfig->value);
+                if(count($aRate) == 2){
+                    $activateRate = $aRate[0] / $aRate[1];
+                }
+            }
+            if($masterConfig->code == 'surplus_propo'){
+                $aRate = explode(':',$masterConfig->value);
+                if(count($aRate)){
+                    $firstRate = $aRate[0];
+                    $totalRate = array_sum($aRate);
+                    $leftRate = $totalRate - $firstRate;
+                }
+            }
+            if($masterConfig->code == 'coupon_propo'){
+                $aRate = explode(':',$masterConfig->value);
+                if(count($aRate) == 2){
+                    $couponRate = $aRate[1];
+                }
+            }
+
+        }
+        if($total_score < $min || $total_score > $max || $rate != $activateRate){
+            return error('99995','消费激活总数量范围'.$min.'~'.$max);
+        }
+
+
+        $user_extra = DB::table('mq_users_extra')->select('user_status','user_cx_rank','invite_user_id','new_status','pay_password','xps.unlimit as useable_m_score','tps.shopp as useable_consume_score')->join('xps','xps.user_id','=','mq_users_extra.user_id')->join('tps','tps.user_id','=','mq_users_extra.user_id')->where('mq_users_extra.user_id',$user_id)->first();
+
+        if(empty($user_extra)){
+            return error('99998','非法操作');
+        }
+        $userName = DB::table('users')->where('user_id',$user_id)->pluck('user_name')->first();
+        if(empty($userName)){
+            return error('99998','非法操作');
+
+        }
+        if($user_extra->user_cx_rank == 0){
+            return error('40015','自己的账号未激活，无法帮别人激活');
+        }
+        $to_user = DB::table('users')->select('user_cx_rank','users.user_id','invite_user_id','team_number')->join('mq_users_extra','mq_users_extra.user_id','=','users.user_id')->where('user_name',$account)->first();
+        if(empty($to_user)){
+            return error('40016','被激活账号不存在');
+        }
+        if(empty($to_user->user_cx_rank)){
+
+            return error('40028','该账户必须先在APP中被账户激活');
+        }
+        if(empty($user_extra->pay_password)){
+            return error('40004','请先设置支付密码');
+        }
+        if(strcmp(md5($password),$user_extra->pay_password) !== 0){
+            return error('40005','支付密码不正确');
+        }
+
+        if($user_extra->useable_m_score < $m_score || $user_extra->useable_consume_score < $consume_score){
+            return error('40014','余额不足');
+        }
+        $toUser_tps = DB::table('tps')->select('coupon as left_coupon','shopp as useable_consume','surplus as wait_consume')->where('user_id',$to_user->user_id)->first();
+
+        //xm_customs_apply
+        //xm_flow_log
+        //xm_tps
+        //xm_xps
+        $redis_name = 'tradeActivate-'.$user_id;
+        if(Redis::exists($redis_name)){
+            return error('99994','处理中...');
+        }else{
+            Redis::set($redis_name,'1');
+        }
+        $now = time();
+        DB::beginTransaction();
+        $customs_appay = [
+            'from_user_id'=>$user_id,
+            'to_user_id'=>$to_user->user_id,
+            'xpoints'=>$m_score,
+            'cpoints'=>$consume_score,
+            'surplus'=>$leftRate * $total_score,
+            'surpro'=>$leftRate,
+            'points'=>$totalRate * $total_score,
+            'create_at'=>$now,
+            'update_at'=>$now
+        ];
+        $customs_appay_id = DB::table('customs_apply')->insertGetId($customs_appay,'id');
+        if(empty($customs_appay_id)){
+            DB::rollBack();
+            Redis::del($redis_name);
+
+            return error('99999','操作失败');
+        }
+        DB::update('UPDATE xm_xps SET amount = amount - ?,unlimit = unlimit - ?  WHERE user_id = ?',[$m_score,$m_score,$user_id]);
+        DB::update('UPDATE xm_tps SET shopp = shopp - ? WHERE user_id = ?',[$consume_score,$user_id]);
+
+        DB::update('UPDATE xm_tps SET coupon = coupon + ?,shopp = shopp + ?,surplus = surplus + ? WHERE user_id = ?',[$total_score * $couponRate,$total_score * $firstRate,$total_score * $leftRate ,$to_user->user_id]);
+
+
+        $flow_data = [
+            'user_id'=>$user_id,
+            'amount'=>$m_score,
+            'type'=>1,
+            'status'=>2,
+            'surplus'=>$user_extra->useable_m_score - $m_score,
+            'notes'=>'消费激活-'.$account,
+            'create_at'=>$now,
+            'target_type'=>3,
+            'target_id'=>$customs_appay_id
+        ];
+        $foid1 = DB::table('flow_log')->insertGetId($flow_data,'foid');
+        $flow_data['amount'] = $consume_score;
+        $flow_data['type'] = 3;
+        $flow_data['surplus'] = $user_extra->useable_consume_score - $consume_score;
+        $flow_data['notes'] = '消费激活-'.$account;
+        $foid2 = DB::table('flow_log')->insertGetId($flow_data,'foid');
+
+        $flow_data['status'] = 1;
+        $flow_data['target_type'] = 2;
+        $flow_data['user_id'] = $to_user->user_id;
+        $flow_data['notes'] = '被消费激活-'.$userName;
+        $flow_data['amount'] = $total_score * $firstRate;
+        $flow_data['surplus'] = $toUser_tps->useable_consume + $total_score * $firstRate;
+        $foid3 = DB::table('flow_log')->insertGetId($flow_data,'foid');
+
+
+        //被消费激活赠送购物券-
+        $flow_data['type'] = 5;
+        $flow_data['notes'] = '被消费激活赠送购物券-'.$userName;
+        $flow_data['amount'] = $total_score * $couponRate;
+        $flow_data['surplus'] = $toUser_tps->left_coupon + $total_score * $couponRate;
+        $foid4 = DB::table('flow_log')->insertGetId($flow_data,'foid');
+
+
+        //待释放 被消费激活剩余积分-
+        $flow_data['type'] = 6;
+        $flow_data['notes'] = '被消费激活剩余积分-'.$userName;
+        $flow_data['amount'] = $total_score * $leftRate;
+        $flow_data['surplus'] = $toUser_tps->wait_consume + $total_score * $leftRate;
+        $foid5 = DB::table('flow_log')->insertGetId($flow_data,'foid');
+
+
+        if(empty($foid1) || empty($foid2) || empty($foid3) || empty($foid4) || empty($foid5) ){
+            DB::rollBack();
+            Redis::del($redis_name);
+            error('99999','操作失败');
+        }
+
+        //1、$to_user->user_id 那层团队奖
+        $bol = $this->bonusWeishang((array)$to_user,$m_score,$account,$customs_appay_id,2);
+
+        if($bol){
+            DB::commit();
+            Redis::del($redis_name);
+            success();
+        }else{
+            DB::rollBack();
+            Redis::del($redis_name);
+            error('99999','操作失败');
+        }
+
+
+
+
+
+
+    }
+
+    /**
+     * @param $user_extra2 被报单人用户信息
+     * @param $cash_money 报单使用新美积分部分
+     */
+    function bonusWeishang($user_extra2, $cash_money, $user_name,$target_id,$target_type)
+    {
+        $percent_3w = 5; //3w提成
+        $percent_10w = 10;//10w提成
+        $percent_30w = 15;//30w提成
+
+        $percent_rest = 0; //剩余可分派点数
+        $last_rank = 0;  //上一个等级
+        $current_percent = 0;
+        $last_percent = 0;//上一个提成百分比
+        $jicha = 0; //级差
+        $percent_total = 0;//可分配总点数
+        $calc_percent = 0;//实际获得计算的百分比
+
+
+        $percent_total = max($percent_3w, $percent_10w, $percent_30w);
+        $amount = 0;//提成金额
+        $percent_rest = $percent_total;
+        $now = time();
+        while (true) {
+
+            //送完则退出处理
+            if ($percent_rest == 0) {
+                while (true) {
+                    //更新到奖金池
+                    if ($user_extra2['user_cx_rank'] == 4) {
+                        $amount1 = 0.01 * $cash_money;
+                        $ret = DB::update(' UPDATE xm_tps SET gold_pool=gold_pool+? WHERE user_id=?',[$amount1,$user_extra2['user_id']]);
+
+                        $gold_pool = DB::table('tps')->where('user_id',$user_extra2['user_id'])->pluck('gold_pool')->first();
+                        if ($ret) {
+                            $notes = $user_name.'消费激活服务商获得平级奖励'.$amount1;
+                            $insert_data = [
+                                'user_id'=>$user_extra2['user_id'],
+                                'amount'=>$amount1,
+                                'surplus'=>$gold_pool,
+                                'type'=>4,
+                                'status'=>1,
+                                'notes'=>$notes,
+                                'create_at'=>$now,
+                                'target_type'=>$target_type,
+                                'target_id'=>$target_id
+                            ];
+                            DB::table('flow_log')->insertGetId($insert_data,'foid');
+                        }
+                        break;
+                    }elseif ($user_extra2['invite_user_id']){
+                        $user_extra2 = $this->getUserExtra($user_extra2['invite_user_id']);
+                    }else{
+                        break;
+                    }
+
+
+                    if (!$user_extra2) {
+                        break;
+                    }
+
+
+                    //已达到顶级用户则退出
+                    if (!$user_extra2['invite_user_id']) {
+                        break;
+                    }
+                }
+                break;
+            }
+
+            //是服务中心
+            if (in_array($user_extra2['user_cx_rank'], [2, 3, 4])) {
+                if ($user_extra2['user_cx_rank'] > $last_rank) {
+                    if ($user_extra2['user_cx_rank'] == 2) {
+                        $current_percent = $percent_3w;
+                    } else if ($user_extra2['user_cx_rank'] == 3) {
+                        $current_percent = $percent_10w;
+                    } else if ($user_extra2['user_cx_rank'] == 4) {
+                        $current_percent = $percent_30w;
+                    }
+                    $jicha = $current_percent - $last_percent;
+                    //提成
+                    $calc_percent = min($percent_rest, $jicha);
+                    $amount = $cash_money * $calc_percent / 100;
+                    //更新到奖金池
+                    $ret = DB::update('UPDATE xm_tps SET gold_pool=gold_pool+? WHERE user_id=?',[$amount,$user_extra2['user_id']]);
+                    $gold_pool = DB::table('tps')->where('user_id',$user_extra2['user_id'])->pluck('gold_pool')->first();
+
+                    if ($ret) {
+                        $notes = $user_name.'消费激活服务商获得奖励'.$amount;
+
+                        $insert_data = [
+                            'user_id'=>$user_extra2['user_id'],
+                            'amount'=>$amount,
+                            'type'=>4,
+                            'surplus'=>$gold_pool,
+                            'status'=>1,
+                            'notes'=>$notes,
+                            'create_at'=>$now,
+                            'target_type'=>$target_type,
+                            'target_id'=>$target_id
+                        ];
+                        DB::table('flow_log')->insertGetId($insert_data,'foid');
+                    }
+                    //剩余信息
+                    $last_percent = $current_percent;
+                    $last_rank = $user_extra2['user_cx_rank'];
+                    $percent_rest = $percent_rest - $calc_percent;
+
+                }
+
+            }
+            //已达到顶级永和则退出
+            if (!$user_extra2['invite_user_id']) {
+                break;
+            }
+            $user_extra2 = $this->getUserExtra($user_extra2['invite_user_id']);
+
+            if (!$user_extra2) {
+                break;
+            }
+        }
+        return true;
+    }
+
+
+    function getUserExtra($user_id){
+        $user_extra = DB::table('mq_users_extra')->select('user_id','user_cx_rank','invite_user_id','team_number')->where('user_id',$user_id)->first();
+        return (array)$user_extra;
+    }
+
+    /**
+     * description:积分倍增记录
+     * @author Harcourt
+     * @date 2018/8/29
+     */
+    public function activateList(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+//        $user_id = 13911;
+        $page = $request->input('page',0);
+        if(empty($user_id)){
+            return error('00000','参数不全');
+        }
+        $limit = 20;
+        $offset = $limit * $page;
+        $lists = DB::table('customs_apply')->select('xpoints','cpoints','create_at')->where('from_user_id',$user_id)->orderBy('id','desc')->offset($offset)->limit($limit)->get();
+        foreach ( $lists as $list) {
+            $list->create_at = date('y/m/d H:i', $list->create_at);
+        }
+        success($lists);
+    }
+
+    /**
+     * description:积分倍增收益
+     * @author Harcourt
+     * @date 2018/8/29
+     */
+    public function benifitList(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+//        $user_id = 13911;
+        $page = $request->input('page',0);
+        if(empty($user_id)){
+            return error('00000','参数不全');
+        }
+        $limit = 20;
+        $offset = $limit * $page;
+        $where = [
+            ['user_id',$user_id],
+            ['type',3],
+            ['status',1],
+            ['notes','like','%被消费激活%']
+
+        ];
+        $totalAmount = DB::table('flow_log')->selectRaw('sum(amount) as totalA')->where($where)->pluck('totalA')->first();
+        $lists = DB::table('flow_log')->select('amount','create_at')->where($where)->orderBy('foid','desc')->offset($offset)->limit($limit)->get();
+        foreach ( $lists as $list) {
+            $list->create_at = date('y/m/d H:i', $list->create_at);
+        }
+        $data['totalAmount'] = $totalAmount;
+        $data['list'] = $lists;
+        success($data);
+    }
+
+    /**
+     * description:获取待释放收益
+     * @author Harcourt
+     * @date 2018/9/7
+     */
+    public function getWaitRelease(Request $request)
+    {
+        $user_id = $request->input('user_id',0);
+        if($user_id){
+            $surplus = DB::table('tps')->where('user_id',$user_id)->value('surplus');
+        }else{
+            $surplus = '0';
+        }
+        $data['waitRelease'] = $surplus;
+        success($data);
+
+    }
+
+    
+}
