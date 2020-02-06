@@ -1,0 +1,111 @@
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+<!-- 商品搜索 -->
+<div class="form-div">
+    <form action="" name="">
+        <input name="card_no" type="text" placeholder="请输入银行卡号" value="{$filter.card_no}">
+        <input name="phone" type="text" placeholder="请输入手机号" value="{$filter.phone}">
+        <select name="status">
+            <option value="3" {if $filter.status==3}selected{/if}>全部</option>
+            <option value="0" {if $filter.status==0}selected{/if}>有效</option>
+            <option value="1" {if $filter.status==1}selected{/if}>无效</option>
+        </select>
+        <input type="hidden" name="act" value="option">
+        <input type="submit" value=" 搜索 " class="button">
+    </form>
+</div>
+<form method="post" action="" name="listForm" onsubmit="return confirmSubmit(this)">
+    <div class="list-div" id="listDiv">
+        {/if}
+        <table cellpadding="3" cellspacing="1">
+            <tr>
+                <th>编号</th>
+                <th>银行卡号</th>
+                <th>真实姓名</th>
+                <th>总金额</th>
+                <th>余额</th>
+                <th>使用次数</th>
+                <th>联系电话</th>
+                <th>银行卡图片</th>
+                <th>银行卡logo</th>
+                <th>银行卡名</th>
+                <th>是否应急卡</th>
+                <th>创建时间</th>
+                <th>修改时间</th>
+                <th>状态</th>
+                <th>操作</th>
+            <tr>
+                {foreach from=$examines_list item=examines}
+            <tr>
+                <td>{$examines.id}</td>
+                <td>{$examines.card_no}</td>
+                <td>{$examines.truename}</td>
+                <td>{$examines.money}</td>
+                <td>{$examines.balance}</td>
+                <td>{$examines.count}</td>
+                <td>{$examines.phone}</td>
+                <td><img width="60px;" height="30px;" src="{$examines.card_img}" alt=""></td>
+                <td><img width="60px;" height="30px;" src="{$examines.logo_img}" alt=""></td>
+                <td>{$examines.card_name}</td>
+                <td>{$examines.emergency}</td>
+                <td>{$examines.create_time}</td>
+                <td>{$examines.update_time}</td>
+                <td>{$examines.type}</td>
+                <td align="center">
+                    <a href="examine.php?act=edit&id={$examines.id}"
+                       title="{$lang.edit}"><img src="images/icon_edit.gif" width="16" height="16" border="0"/></a>
+                    <a href="javascript:;" onclick="remove_examines(this,{$examines.id})" title="{$lang.trash}"><img
+                            src="images/icon_trash.gif" width="16" height="16" border="0"/></a>
+                </td>
+            </tr>
+            {foreachelse}
+            <tr>
+                <td class="no-records" colspan="15">{$lang.no_records}</td>
+            </tr>
+            {/foreach}
+            <tr>
+                <td align="right" nowrap="true" colspan="15">{include file="page.htm"}</td>
+            </tr>
+        </table>
+        {if $full_page}
+    </div>
+</form>
+
+
+<script type="text/javascript" language="JavaScript">
+    function remove_examines(obj, id) {
+        if (confirm('确定要删除吗')) {
+            $.ajax({
+                type: 'post',
+                url: 'examine.php?act=remove',
+                data: {id: id},
+                dataType: 'json',
+                success: function (data) {  //请求成功回调函数
+                    var status = data.status; //获取返回值
+                    if (status == 1) {  //判断状态码，200为成功
+                        $(obj).parent().parent().remove();
+                        alert('删除成功')
+                    } else {
+                        alert('请重新操作')
+                    }
+                },
+            });
+        }
+    }
+    listTable.recordCount = {$record_count};
+    listTable.pageCount = {$page_count};
+
+    {foreach from=$filter item=item key=key}
+    listTable.filter.{$key} = '{$item}';
+    {/foreach}
+        {literal}
+        function searchApply()
+        {
+            listTable.filter['page'] = 1;
+            listTable.loadList();
+        }
+        {/literal}
+</script>
+{include file="pagefooter.htm"}
+{/if}

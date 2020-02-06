@@ -1,0 +1,106 @@
+<!-- $Id: agency_list.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+<!-- 订单搜索 -->
+<div class="form-div">
+  <form action="javascript:searchApply()" name="searchForm">
+    <img src="images/icon_search.gif" width="26" height="22" border="0" alt="SEARCH" />
+
+    审核状态
+    <select name="recharge_status">
+      <option value="">{$lang.select_please}</option>
+      <option value="0" selected>待审核</option>
+      <option value="-1">已拒绝</option>
+      <option value="1">已通过</option>
+    </select>
+    会员名称<input name="user_name" type="text" placeholder="手机号/用户名/邮箱" id="user_name" size="15">
+    <input type="submit" value="{$lang.button_search}" class="button" />
+  </form>
+</div>
+
+<form method="post" action="" name="listForm" onsubmit="return confirm(batch_drop_confirm);">
+<div class="list-div" id="listDiv">
+{/if}
+
+  <table cellpadding="3" cellspacing="1">
+    <tr>
+      <th>
+          <a href="javascript:listTable.sort('id'); ">{$lang.record_id}</a>{$sort_id} </th>
+      <th><a href="javascript:listTable.sort('user_name'); ">充值用户名</a>{$sort_user_name}</th>
+      <th><a href="javascript:listTable.sort('money'); ">充值金额</a>{$sort_money}</th><!-- 
+      <th>充值到账户信息</th>
+      <th>充值到账号信息</th>
+      <th>充值到开户行信息</th> -->
+      <th><a href="javascript:listTable.sort('recharge_status'); ">审核状态</a>{$sort_recharge_status}</th>
+      <th><a href="javascript:listTable.sort('create_time'); ">充值时间</a>{$sort_create_time}</th>
+      <th><a href="javascript:listTable.sort('update_time'); ">审核时间</a>{$sort_update_time}</th>
+      <th>{$lang.handler}</th>
+    </tr>
+    {foreach from=$recharge_apply_list item=apply}
+    <tr>
+      <td>
+        {$apply.id}</td>
+      <td>{$apply.user_name|nl2br}</td>
+      <td>{$apply.money|nl2br}元</td>
+     <!--  <td>{$apply.bank_info_account_name|nl2br}</td>
+      <td>{$apply.bank_info_account|nl2br}</td>
+      <td>{$apply.bank_info_account_branch|nl2br}</td> -->
+      <td>{if $apply.recharge_status eq -1}已拒绝({$apply.refused_reason}){elseif $apply.recharge_status eq 1}已通过{else}待审核{/if}</td>
+      <td>{$apply.create_time_format}</td>
+      <td>{if $apply.recharge_status neq 0}{$apply.update_time_format}{/if}</td>
+      <td align="center">
+        {if $apply.recharge_status eq 0}
+        <a href="mq_recharge_audit.php?act=apply_audit&id={$apply.id}" title="审核">审核</a>
+        {/if}
+    </tr>
+    {foreachelse}
+    <tr><td class="no-records" colspan="10">{$lang.no_records}</td></tr>
+    {/foreach}
+  </table>
+<table id="page-table" cellspacing="0">
+  <tr>
+    <td>
+    </td>
+    <td align="right" nowrap="true">
+    {include file="page.htm"}
+    </td>
+  </tr>
+</table>
+
+{if $full_page}
+</div>
+</form>
+
+<script type="text/javascript" language="javascript">
+  <!--
+  listTable.recordCount = {$record_count};
+  listTable.pageCount = {$page_count};
+
+  {foreach from=$filter item=item key=key}
+  listTable.filter.{$key} = '{$item}';
+  {/foreach}
+
+  {literal}
+  onload = function()
+  {
+      // 开始检查订单
+      startCheckOrder();
+  }
+  /**
+   * 搜索订单
+   */
+  function searchApply()
+  {
+    listTable.filter['user_name'] = Utils.trim(document.forms['searchForm'].elements['user_name'].value);
+    listTable.filter['recharge_status'] = document.forms['searchForm'].elements['recharge_status'].value;
+    listTable.filter['page'] = 1;
+    listTable.loadList();
+  }
+
+  {/literal}
+  //-->
+</script>
+{include file="pagefooter.htm"}
+{/if}

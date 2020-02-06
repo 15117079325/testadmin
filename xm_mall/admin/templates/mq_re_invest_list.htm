@@ -1,0 +1,167 @@
+<!-- $Id: agency_list.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js,validator.js,jquery-1.6.2.min.js"}
+
+<script type='text/javascript' src='../js/calendar.php' ></script>
+<link href='../js/calendar/calendar.css' rel='stylesheet' type='text/css' />
+<!-- 释放 -->
+<div class="form-div">
+  <form method="post" action="mq_re_invest.php" ID="theFormTime" name="theForm"  >
+    <img src="images/icon_account.gif" width="26" height="22" border="0" alt="SEARCH" />
+    {if $last_release_date}
+    上次释放到:&nbsp;&nbsp;{$last_release_date}&nbsp;&nbsp;&nbsp;&nbsp;
+    {/if}
+    本次将释放到:
+    <input name="release_time" id="release_time" type="text" size="20" readonly="readonly" value="{$default_release_time}" onclick="return showCalendar('release_time', '%Y-%m-%d', false, true, 'release_time');">
+
+    <input type="hidden" name="act" value="release_invest" />
+    <input type="button"  value="释放投资" class="button" onclick="release()"   />
+  </form>
+</div>
+<!-- 订单搜索 -->
+<div class="form-div">
+  <form action="javascript:searchApply()" name="searchForm">
+    <img src="images/icon_search.gif" width="26" height="22" border="0" alt="SEARCH" />
+    用户名<input name="user_name" type="text" id="user_name" size="15">
+    投资状态
+    <select name="invest_status">
+      <option value="0">{$lang.select_please}</option>
+      <option value="1">投资中</option>
+      <option value="2">已释放</option>
+    </select>
+    <input type="submit" value="{$lang.button_search}" class="button" />
+  </form>
+</div>
+
+<form method="post" action="" name="listForm" onsubmit="return confirm(batch_drop_confirm);">
+<div class="list-div" id="listDiv">
+{/if}
+
+  <table cellpadding="3" cellspacing="1">
+    <tr>
+      <th><a href="javascript:listTable.sort('id'); ">{$lang.record_id}</a>{$sort_id} </th>
+      <th>投资用户</th>
+      <th>预存消费金额</th>
+      <th>预存消费时间</th>
+      <th>积分倍增轮数</th>
+      <th>本轮预存额度</th>
+      <th>本轮预存时间</th>
+      <th>本轮回报</th>
+      <th>投资状态</th>
+      <th>{$lang.handler}</th>
+    </tr>
+    {foreach from=$re_invest_list item=invest}
+    <tr>
+      <td>{$invest.invest_id}</td>
+      <td>{$invest.user_name|nl2br}</td>
+      <td>{$invest.init_credit|nl2br}</td>
+      <td>{$invest.invest_at_format|nl2br}</td>
+      <td>{$invest.round|nl2br}</td>
+      <td>{$invest.invest_credit|nl2br}</td>
+      <td>{$invest.update_at_format|nl2br}</td>
+      <td>{$invest.payback_credit|nl2br}</td>
+      <td>{$invest.invest_status_text|nl2br}</td>
+      <td align="center">
+        {if $apply.invest_status eq 1}
+        <a href="mq_re_invest.php?act=release&id={$apply.id}" title="释放">释放</a>
+        {/if}
+    </tr>
+    {foreachelse}
+    <tr><td class="no-records" colspan="10">{$lang.no_records}</td></tr>
+    {/foreach}
+  </table>
+<table id="page-table" cellspacing="0">
+  <tr>
+    <td>
+    </td>
+    <td align="right" nowrap="true">
+    {include file="page.htm"}
+    </td>
+  </tr>
+</table>
+
+{if $full_page}
+</div>
+</form>
+
+<script type="text/javascript" >
+  <!--
+  listTable.recordCount = {$record_count};
+  listTable.pageCount = {$page_count};
+
+  {foreach from=$filter item=item key=key}
+  listTable.filter.{$key} = '{$item}';
+  {/foreach}
+
+  {literal}
+  onload = function()
+  {
+      // 开始检查订单
+      startCheckOrder();
+  }
+  /**
+   * 搜索订单
+   */
+  function searchApply()
+  {
+    listTable.filter['user_name'] = Utils.trim(document.forms['searchForm'].elements['user_name'].value);
+    listTable.filter['invest_status'] = document.forms['searchForm'].elements['invest_status'].value;
+    listTable.filter['page'] = 1;
+    listTable.loadList();
+  }
+
+//  /**
+//   * 检查表单输入的数据
+//   */
+//  function validate()
+//  {
+//    validator = new Validator("theForm");
+//    validator.required("release_time",  no_release_time);
+//
+//    return validator.passed();
+//  }
+
+  function showC(){
+    var calendar = new Calendar();
+    showCalendar('release_time', '%Y-%m-%d', false, true, 'release_time');
+  }
+
+//  {/literal}
+
+  /*投资释放*/
+  function release(){
+    validator = new Validator("theForm");
+    validator.required("release_time",  no_release_time);
+    var release_time = $('#release_time').val();
+    if( validator.passed()){
+      $.ajax({
+        type: "POST",
+        data:{release_time:release_time},
+        url:"mq_re_invest.php?is_ajax=1&act=notcie_release_invest",
+        dataType:'json',
+        success:function(json){
+          if(json.result){
+
+            if (confirm("确定要释放吗?本次将会释放"+json.message+"积分"))
+            {
+              $('#theFormTime').submit();
+            }
+            else{
+              return false;
+            }
+          }else{
+            alert(json.message);
+            return false;
+          }
+        }
+      });
+    }
+
+
+  }
+  //-->
+</script>
+{include file="pagefooter.htm"}
+{/if}

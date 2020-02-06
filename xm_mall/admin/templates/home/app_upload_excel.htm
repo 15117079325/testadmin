@@ -1,0 +1,46 @@
+<!-- $Id -->
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+
+<div class="list-div" id="listDiv">
+  <form action="app_excel.php?act=update_delivery" method="post">
+    <table cellspacing="1" cellpadding="3" width="100%">
+      <tr>
+        <th><input type="checkbox" checked onclick="listTable.selectAll(this, 'checked')" />{$lang.record_id}</th>
+       <th>订单编号</th>
+        <th>快递单号</th>
+        <th>商品名字</th>
+        <th>商品数量</th>
+        <th>收货人</th>
+        <th>收货地址</th>
+        <th>快递名</th>
+      </tr>
+      {foreach from=$delivery_list key=key item=delivery}
+      <tr>
+        <td><input type="checkbox" name="checked[]" value="{$key}" checked /> {$key} </td>
+        <td>{$delivery.order_sn}<input type="hidden" value="{$delivery.order_sn}" name="order_sn[{$key}]"></td>
+        <td><input type="text" value="{$delivery.delivery_sn}" name="delivery_sn[{$key}]"/></td>
+        <td>{$delivery.goods_name}</td>
+        <td>{$delivery.goods_number}</td>
+        <td>{$delivery.consignee}</td>
+        <td>{$delivery.region_address}</td>
+         <td>
+      <select name="express_company[{$key}]">
+        <option value="-1">请选择</option>
+          {foreach from=$express_company_list_name key=keyy item=deliveryy}
+          <option value="{$keyy}" {if $keyy == $delivery['shipping_id']}selected{/if}>{$deliveryy}</option>
+          {/foreach}
+      </select>  
+    </td>
+      </tr>
+      {/foreach}
+      <tr align="center">
+        <td colspan="10">
+          <input type="submit" name="submit" value="{$lang.button_submit}" class="button" />
+          <input type="button" name="reset" onclick="history.go(-1)" value="{$lang.back}" class="button" />
+        </td>
+      </tr>
+    </table>
+  </form>
+</div>
+{include file="pagefooter.htm"}

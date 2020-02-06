@@ -1,0 +1,50 @@
+<!-- $Id: ads_info.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+{include file="pageheader.htm"}
+<script type="text/javascript" src="../js/calendar.php?lang={$cfg_lang}"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css" />
+<div class="main-div">
+    <form action="app_group.php" method="post" name="theForm" enctype="multipart/form-data" onsubmit="return validate()">
+        <table width="100%" id="general-table">
+            <tr>
+                <td  class="label">
+                        </a>群名称</td>
+                <td>
+                    <input type="text" name="group_name" value="{$nav.gc_title}" size="35" /><span class="require-field">*</span>
+                </td>
+            </tr>
+            <tr>
+                <td  class="label">
+                        </a>群主名称(用户的账号)</td>
+                <td>
+                    <input type="text" name="group_user_name" value="{$nav.user_name}" size="35" /><span class="require-field">*</span>
+                </td>
+            </tr>
+            <tr>
+					<td class="label">群头像</td>
+					<td>
+						<input type="file" name="group_img" size="35" />
+						<input type="hidden" name="goods_img_hidden" size="35" value="{$nav.gc_pic}"/>
+							{if $nav.gc_pic}
+						<a href="app_goods.php?act=show_image&img_url={$nav.gc_pic}" target="_blank">
+							<img src="images/yes.gif" border="0" />
+						</a>
+						{else}
+						<img src="images/no.gif" />
+						{/if}
+					</td>
+				</tr>
+            </tbody>
+            <tr>
+                <td class="label">&nbsp;</td>
+                <td>
+                    <input type="submit" value="{$lang.button_submit}" class="button" onclick="return checkImg();"/>
+                    <input type="reset" value="{$lang.button_reset}" class="button" />
+                    <input type="hidden" name="act" value="{$form_act}" />
+                    <input type="hidden" name="id" value="{$nav.gc_id}" />
+                </td>
+            </tr>
+        </table
+    </form>
+</div>
+
+{include file="pagefooter.htm"}

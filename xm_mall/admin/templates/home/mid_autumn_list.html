@@ -1,0 +1,148 @@
+<!-- $Id: goods_list.htm 17126 2010-04-23 10:30:26Z liuhui $ -->
+
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+
+<!-- 商品搜索 -->
+<div class="form-div" style="height: 30px;">
+</div>
+<!-- 商品列表 -->
+<form method="post" action="" name="listForm" onsubmit="return confirmSubmit(this)">
+    <div class="list-div" id="listDiv">
+        {/if}
+        <table cellpadding="3" cellspacing="1">
+            <tr>
+                <th>编号</th>
+                <th>商品名</th>
+                <th>商品库存</th>
+                <th>商品日库存数</th>
+                <th>商品编码</th>
+                <th>商品排序编码</th>
+                <th>操作</th>
+            <tr>
+                {foreach from=$goods_list item=goods}
+            <tr>
+                <td>{$goods.id}</td>
+
+                <td class="first-cell"><span onclick="update_name(this)">{$goods.goods_name|escape:html}</span><input
+                        type="text" name="update_name" value="{$goods.goods_name|escape:html}" style="display:none;"
+                        onblur="update_names(this,'goods_name',{$goods.id})"/></td>
+
+                <td class="first-cell"><span onclick="update_name(this)">{$goods.goods_num|escape:html}</span><input
+                        type="text" name="update_name" value="{$goods.goods_num|escape:html}" style="display:none;"
+                        onblur="update_names(this,'goods_num',{$goods.id})"/></td>
+
+                <td class="first-cell"><span
+                        onclick="update_name(this)">{$goods.deployment_num|escape:html}</span><input
+                        type="text" name="update_name" value="{$goods.deployment_num|escape:html}" style="display:none;"
+                        onblur="update_names(this,'goods_num',{$goods.id})"/></td>
+
+                <td class="first-cell"><span
+                        onclick="update_name(this)">{$goods.goods_code_luck|escape:html}</span><input
+                        type="text" name="update_name" value="{$goods.goods_code_luck|escape:html}"
+                        style="display:none;"
+                        onblur="update_names(this,'goods_num',{$goods.id})"/></td>
+
+                <td class="first-cell"><span
+                        onclick="update_name(this)">{$goods.goods_code|escape:html}</span><input
+                        type="text" name="update_name" value="{$goods.goods_code|escape:html}"
+                        style="display:none;"
+                        onblur="update_names(this,'goods_num',{$goods.id})"/></td>
+
+                <td align="center">
+                    <a href="mid_autumn.php?act=edit&p_id={$goods.id}{if $code neq 'real_goods'}&extension_code={$code}{/if}"
+                       title="{$lang.edit}"><img src="images/icon_edit.gif" width="16" height="16" border="0"/></a>
+                    <a href="javascript:;" onclick="remove_goods(this,{$goods.id})" title="{$lang.trash}"><img
+                            src="images/icon_trash.gif" width="16" height="16" border="0"/></a>
+                </td>
+            </tr>
+            {foreachelse}
+            <tr>
+                <td class="no-records" colspan="15">{$lang.no_records}</td>
+            </tr>
+            {/foreach}
+            <tr>
+                <td align="right" nowrap="true" colspan="10">{include file="page.htm"}</td>
+            </tr>
+        </table>
+
+        {if $full_page}
+    </div>
+</form>
+
+<script type="text/javascript" language="JavaScript">
+
+    function remove_goods(obj, id) {
+        if (confirm('确定要删除吗')) {
+            $.ajax({
+                type: 'post',
+                url: 'mid_autumn.php?act=remove_goods',
+                data: {id: id},
+                dataType: 'json',
+                success: function (data) {  //请求成功回调函数
+                    var status = data.status; //获取返回值
+                    if (status == 1) {  //判断状态码，200为成功
+                        $(obj).parent().parent().remove();
+                        alert('删除成功')
+                    } else {
+                        alert('请重新操作')
+                    }
+                },
+            });
+        }
+    }
+
+    function update_names(obj, key, id) {
+        var title = $(obj).val();
+        if (title === '') {
+            alert('名字不能为空');
+            return;
+        }
+        $.ajax({
+            type: 'post',
+            url: 'app_goods.php?act=update_name',
+            data: {key: key, id: id, title: title},
+            dataType: 'json',
+            success: function (data) {  //请求成功回调函数
+                var status = data.status; //获取返回值
+                if (status == 1) {  //判断状态码，200为成功
+                    $(obj).val(title);
+                    $(obj).hide();
+                    $(obj).prev().text(title);
+                } else {
+                    alert('请重新操作')
+                }
+            },
+        });
+    }
+
+    function update_status(obj, key, id) {
+        var status = $(obj).attr('data');
+        $.ajax({
+            type: 'post',
+            url: 'app_goods.php?act=update_status',
+            data: {key: key, id: id, status: status},
+            dataType: 'json',
+            success: function (data) {  //请求成功回调函数
+                var status = data.status; //获取返回值
+                if (status == 1) {  //判断状态码，200为成功
+                    $(obj).attr('data', status);
+                    $(obj).attr('src', 'images/yes.gif');
+                } else if (status == 0 || status == 2) {
+                    $(obj).attr('data', status);
+                    $(obj).attr('src', 'images/no.gif');
+                }
+            },
+        });
+    }
+
+    listTable.recordCount = {$record_count};
+    listTable.pageCount = {$page_count};
+
+    {foreach from=$filter item=item key=key}
+    listTable.filter.{$key} = '{$item}';
+    {/foreach}
+</script>
+{include file="pagefooter.htm"}
+{/if}

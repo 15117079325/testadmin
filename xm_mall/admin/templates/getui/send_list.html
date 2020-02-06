@@ -1,0 +1,155 @@
+<!-- $Id: goods_list.htm 17126 2010-04-23 10:30:26Z liuhui $ -->
+
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+<!-- 消息搜索 -->
+<div class="form-div">
+    <form action="getui.php?act=send_list" method="post" name="theForm">
+        <table>
+            <tr>
+<!--                <td>收获人手机号</td>-->
+<!--                <td><input name='phone' type='text' size='11'/></td>-->
+<!--                <td>用户手机号</td>-->
+<!--                <td><input name='mobile_phone' type='text' size='11'/></td>-->
+                <td><select name="is_status">
+                    <option value="1" {if $is_status==1}selected{/if}>待审核</option>
+                    <option value="2" {if $is_status==2}selected{/if}>已审核</option>
+                    <option value="3" {if $is_status==3}selected{/if}>已拒绝</option>
+                </select></td>
+                <td><input class="button" type="submit" value=" 搜索 "></td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+<div style="text-align: right;"><a href="getui.php?act=create"><input class="button" type="submit" value=" 新建消息 "></a></div>
+
+<!-- 消息列表 -->
+<form method="post" action="" name="listForm" onsubmit="return confirmSubmit(this)">
+    <div class="list-div" id="listDiv">
+        {/if}
+        <table cellpadding="3" cellspacing="1">
+            <tr>
+                <th>编号</th>
+                <th>标题</th>
+                <th>内容</th>
+                <th>跳转类型</th>
+                <th>跳转目标</th>
+                <th>状态</th>
+                <th>更新时间</th>
+                <th>操作</th>
+            <tr>
+                {foreach from=$getui_list item=getui}
+            <tr>
+                <td>{$getui.id}</td>
+                <td>{$getui.title}</td>
+                <td>{$getui.content}</td>
+                <td>{$getui.type}</td>
+                <td>{$getui.jump_targets}</td>
+                <td>{$getui.status}</td>
+                <td>{$getui.update_time}</td>
+                <td align="center">
+                    <a href="getui.php?act=edit&id={$getui.id}"
+                       title="编辑"><img src="images/icon_edit.gif" width="16" height="16" border="0"/></a>
+                </td>
+            </tr>
+            {foreachelse}
+            <tr>
+                <td class="no-records" colspan="15">{$lang.no_records}</td>
+            </tr>
+            {/foreach}
+            <tr>
+                <td align="right" nowrap="true" colspan="10">{include file="page.htm"}</td>
+            </tr>
+        </table>
+
+        {if $full_page}
+    </div>
+</form>
+
+<script type="text/javascript" language="JavaScript">
+    // function update_name(obj) {
+    //     $(obj).text('');
+    //     $(obj).next().show();
+    // }
+
+    function remove_goods(obj, id) {
+        if (confirm('确定要删除吗')) {
+            $.ajax({
+                type: 'post',
+                url: 'mid_autumn.php?act=remove_goods',
+                data: {id: id},
+                dataType: 'json',
+                success: function (data) {  //请求成功回调函数
+                    var status = data.status; //获取返回值
+                    if (status == 1) {  //判断状态码，200为成功
+                        $(obj).parent().parent().remove();
+                        alert('删除成功')
+                    } else {
+                        alert('请重新操作')
+                    }
+                },
+            });
+        }
+    }
+
+    function send_fahuo(obj, id) {
+        var word = prompt("请输入运单号", "");
+        if (word) {
+            //输出word的格式
+            $.ajax({
+                type: 'post',
+                url: 'mid_winning.php?act=update_order',
+                data: {id: id, order_no: word},
+                dataType: 'json',
+                success: function (data) {  //请求成功回调函数
+                    var status = data.status; //获取返回值
+                    if (status == 1) {  //判断状态码，200为成功
+                        $(obj).parent().prev().children('span').text(word);
+                        alert('发货成功')
+                    } else {
+                        alert('请重新操作')
+                    }
+                },
+            });
+        }
+    }
+
+    function update_status(obj, key, id) {
+        var status = $(obj).attr('data');
+        $.ajax({
+            type: 'post',
+            url: 'app_goods.php?act=update_status',
+            data: {key: key, id: id, status: status},
+            dataType: 'json',
+            success: function (data) {  //请求成功回调函数
+                var status = data.status; //获取返回值
+                if (status == 1) {  //判断状态码，200为成功
+                    $(obj).attr('data', status);
+                    $(obj).attr('src', 'images/yes.gif');
+                } else if (status == 0 || status == 2) {
+                    $(obj).attr('data', status);
+                    $(obj).attr('src', 'images/no.gif');
+                }
+            },
+        });
+    }
+
+
+    listTable.recordCount = {$record_count};
+    listTable.pageCount = {$page_count};
+
+    {foreach from=$filter item=item key=key}
+    listTable.filter.{$key} = '{$item}';
+    {/foreach}
+        {literal}
+        function searchApply()
+        {
+            listTable.filter['page'] = 1;
+            listTable.loadList();
+        }
+        {/literal}
+</script>
+{include file="pagefooter.htm"}
+{/if}

@@ -1,0 +1,120 @@
+{if $full_page}
+<!-- $Id: users_list.htm 17053 2010-03-15 06:50:26Z sxc_shop $ -->
+{include file="pageheader.htm"} {insert_scripts files="../js/utils.js,listtable.js,placeholder.js"}
+
+<div class="form-div">
+  <form action="javascript:searchGoods()" name="searchForm">
+    <img src="images/icon_search.gif" width="26" height="22" border="0" alt="SEARCH" />
+    {$lang.label_user_name}&nbsp;
+    <span style="position:relative"><input type="text" name="keyword" placeholder="商品名称" /></span>
+    <input type="submit" class="button" value="{$lang.button_search}" />
+  </form>
+</div>
+<form method="POST" action="" name="listForm"  onsubmit="return confirm_bath()" >
+  <!-- start users list -->
+  <div class="list-div" id="listDiv">
+    {/if}
+    <!--商品列表部分-->
+    <table >
+      <tr>
+        <th style="text-align: left;margin-left: 10px; ">
+          <input onclick='listTable.selectAll(this, "checkboxes")' type="checkbox">
+          {$lang.record_id}
+        </th>
+        <th>
+         商品名称
+        </th>
+        <th>
+          限制数量
+        </th>
+        <th>
+          操作
+        </th>
+      <tr>{foreach from=$goods_list item=goods}
+      <tr>
+        <td>
+          <input type="checkbox" name="checkboxes[]" value="{$goods.goods_id}"  />
+          {$goods.goods_id}
+        </td>
+        <td class="first-cell">
+          <span >{$goods.goods_name|escape}</span>
+        </td>
+        <td class="first-cell">
+        <span >{$goods.limit_num|escape}</span>
+        </td>
+      <td>
+        {if $filter.type eq 'update'}
+        <a href="javascript:confirm_redirect('确认移除吗？', 'limit_user_goods.php?act=remove&goods_id={$goods.goods_id}&user_id={$filter.user_id}')" title="{$lang.remove}">
+          <img src="images/icon_drop.gif" border="0" height="16" width="16" />
+        </a>
+        {/if}
+      </td>
+      </tr>
+      {foreachelse}
+      <tr>
+        <td class="no-records" colspan="3">{$lang.no_records}</td>
+      </tr>
+      {/foreach}
+      <tr>
+        <td>
+          {if $filter.type eq 'add' }
+          <input type="hidden" name="type" value="add" />
+          {else}
+          <input type="hidden" name="type" value="update" />
+          {/if}
+          <input type="hidden" name="act" value="add" />
+          <input type="submit" id="btnSubmit" {if $filter.type eq 'add' }  value="加入限制商品" {else} value="编辑限制商品" {/if} disabled="true" class="button" />
+        </td>
+        <td colspan="3" align="right" nowrap="true">{include file="page.htm"}</td>
+      </tr>
+    </table>
+    {if $full_page}
+  </div>
+  <!-- end users list -->
+</form>
+<script type="text/javascript" language="JavaScript">
+  <!--
+  listTable.recordCount = {$record_count};
+  listTable.pageCount = {$page_count};
+
+  {foreach from=$filter item=item key=key}
+  listTable.filter.{$key} = '{$item}';
+  {/foreach}
+
+  {literal}
+  onload = function()
+  {
+    document.forms['searchForm'].elements['keyword'].focus();
+    // 开始检查订单
+    startCheckOrder();
+  }
+
+  /**
+   * 搜索用户
+   */
+  function searchGoods()
+  {
+    listTable.filter['keywords'] = Utils.trim(document.forms['searchForm'].elements['keyword'].value);
+    listTable.filter['page'] = 1;
+    listTable.loadList();
+  }
+
+  function confirm_bath()
+  {
+    userItems = document.getElementsByName('checkboxes[]');
+
+
+    for (i=0; userItems[i]; i++)
+    {
+      if (userItems[i].checked && userItems[i].notice == 1)
+      {
+        cfm = '{$lang.list_still_accounts}' + '{$lang.list_remove_confirm}';
+        break;
+      }
+    }
+
+    return confirm(cfm);
+  }
+  //-->
+</script>
+{/literal} {include file="pagefooter.htm"} {/if}

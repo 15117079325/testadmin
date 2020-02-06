@@ -1,0 +1,103 @@
+<!-- $Id: ads_list.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+
+<form method="post" action="" name="listForm">
+<!-- start ads list -->
+<div class="list-div" id="listDiv">
+{/if}
+<div class="form-div">
+    <form action="carousel.php?act=list" name="">
+        <select name="type">
+            <option value="1" {if $type==1}selected{/if}>首页</option>
+<!--             <option value="2" {if $type==2}selected{/if}>报单专区</option>
+            <option value="3" {if $type==3}selected{/if}>优惠券专区</option> -->
+            <option value="4" {if $type==4}selected{/if}>礼包专区</option>
+            <option value="5" {if $type==5}selected{/if}>火单头条</option>
+            <option value="-1" {if $type==-1}selected{/if}>H5爆款</option>
+            <option value="-2" {if $type==-2}selected{/if}>H5新品</option>
+            <option value="-3" {if $type==-3}selected{/if}>App热销图</option>
+            {foreach from=$cate item=list}
+              <option value="{$list.cate_id}" {if $type==$list.cate_id}selected{/if}>{$list.cate_title}</option>
+            {/foreach}
+        </select>
+        <input type="hidden" name="act" value="list">
+        <input type="submit" value=" 搜索 " class="button">
+    </form>
+</div>
+<table cellpadding="3" cellspacing="1">
+  <tr>
+    <th>轮播名字</th>
+    <th>缩略图</th>
+    <th>位置</th>
+     <th>跳转类型</th>
+      <th>启用</th>
+    <th>{$lang.handler}</th>
+  </tr>
+  {foreach from=$ads_list item=list}
+  <tr>
+
+    <td class="first-cell">
+    <span>{$list.ca_name|escape:html}</span>
+    </td>
+    <td align="center">
+    <img src="{$list.ad_code}" style="width:100px;" />
+    </td>
+    <td align="left"><span>{if $list.position_id==1}首页{elseif $list.position_id==2}报单专区{elseif $list.position_id==3}优惠券专区{elseif $list.position_id==4}品牌专区{/if}</span></td>
+    <td align="left"><span>{if $list.type=='goods'}商品{elseif $list.type=='seller'}店铺{elseif $list.type=='cate'}分类{elseif $list.type=='link'}web链接{elseif $list.type=='novice'}新人专享{/if}</span></td>
+      <td align="center"><img src="images/{if $list.enabled}yes{else}no{/if}.gif" onclick="update_status(this,'enabled',{$list.ca_id})" data="{$list.enabled}"/></td>
+      <td align="right"><span>
+      <a href="carousel.php?act=edit&id={$list.ca_id}" title="{$lang.edit}"><img src="images/icon_edit.gif" border="0" height="16" width="16" /></a>
+      <a href="javascript:;" onclick="listTable.remove({$list.ca_id}, '{$lang.drop_confirm}')" title="{$lang.remove}"><img src="images/icon_drop.gif" border="0" height="16" width="16" /></a></span>
+    </td>
+  </tr>
+  {foreachelse}
+    <tr><td class="no-records" colspan="10">{$lang.no_ads}</td></tr>
+  {/foreach}
+  <tr>
+    <td align="right" nowrap="true" colspan="10">{include file="page.htm"}</td>
+  </tr>
+</table>
+
+{if $full_page}
+</div>
+<!-- end ad_position list -->
+</form>
+
+<script type="text/javascript" language="JavaScript">
+  listTable.recordCount = {$record_count};
+  listTable.pageCount = {$page_count};
+
+  {foreach from=$filter item=item key=key}
+  listTable.filter.{$key} = '{$item}';
+  {/foreach}
+  {literal}
+  onload = function()
+  {
+    // 开始检查订单
+    startCheckOrder();
+  }
+  {/literal}
+  function update_status(obj,key,id){
+      var status = $(obj).attr('data');
+        $.ajax({
+                type:'post',
+                url:'carousel.php?act=update_status',
+                data:{key:key,id:id,status:status},
+                dataType:'json',
+                success:function(data){  //请求成功回调函数
+                    var status = data.status; //获取返回值
+                    if(status == 1){  //判断状态码，200为成功
+                        $(obj).attr('data',status);
+                        $(obj).attr('src','images/yes.gif');
+                    }else{
+                        $(obj).attr('data',status);
+                       $(obj).attr('src','images/no.gif');
+                    }
+                },
+            });
+  }
+</script>
+{include file="pagefooter.htm"}
+{/if}

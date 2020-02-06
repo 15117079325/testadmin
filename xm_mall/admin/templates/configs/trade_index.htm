@@ -1,0 +1,96 @@
+
+
+{include file="pageheader.htm"}
+{insert_scripts files="../js/transport.org.js,../js/region.js"}
+
+<!-- 20180508 1413 V -->
+<style type="text/css">
+    
+    .box {
+
+        padding: 20px;
+        min-height: 600px;
+    }
+
+    .box span {
+
+        display: inline-block;
+        width: 120px;
+    }
+
+    .score {
+
+        float: left;
+        margin: 0 20px;
+    }
+
+
+    font {
+
+        display: inline-block;
+        font-size: 16px;
+        font-weight: 600;
+        color: #666;
+        margin-bottom: 10px;
+
+    }
+</style>
+
+<div class="main-div box">
+    <div class="score">
+
+        <span> 单日购买最大金额 ：</span>
+        <input type="text" id="buy_max_money" placeholder="2" value="{$list.daily_deal_buy_max_money}">
+         <br>
+        <span> 单日出售最大金额 ：</span>
+        <input type="text" id="sell_max_money" placeholder="2" value="{$list.daily_deal_sell_max_money}">
+        <br>
+        <span> 交易大厅开放时间 ：</span>
+        <input type="text" id="open_close_time" placeholder="08:00-22:00" value="{$list.deal_open_close_time}">
+        <br>
+        <span> 交易大厅手续费 ：</span>
+        <input type="text" id="trade_cost" placeholder="10" value="{$list.xm_trade_cost}">
+        <br>
+        <span> 交易大厅成交笔数 ：</span>
+        <input type="text" id="trade_volume" placeholder="0" value="{$list.trade_volume}">
+        <br>
+        <span></span>
+        <input id="shopp" type="button" class="button" name="" value="设置">
+
+    </div>
+</div>
+
+{literal}
+<script type="text/javascript">
+    
+
+
+    $("#shopp").on("click", function() {
+        var sell_max_money = $("#sell_max_money").val();
+        var buy_max_money = $("#buy_max_money").val();
+        var open_close_time = $("#open_close_time").val();
+        var trade_cost = $("#trade_cost").val();
+        var trade_volume = $("#trade_volume").val();
+
+        $.ajax({
+            type:"POST",
+            url:'shop_config.php',
+            dataType: 'json',
+            data:{act:'shopp', buy_max_money:buy_max_money,sell_max_mony:sell_max_money,open_close_time:open_close_time,trade_cost:trade_cost,trade_volume:trade_volume},
+            success: function(data) {
+
+                alert(data.msg);
+
+                if (data.sus == 1) {
+
+                    location.reload();
+
+                }
+            }
+        });
+
+    });
+</script>
+{/literal}
+
+{include file="pagefooter.htm"}

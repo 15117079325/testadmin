@@ -1,0 +1,90 @@
+{include file="pageheader.htm"}
+{insert_scripts files="validator.js"}
+<div class="main-div">
+<form method="post" action="mq_recharge_audit.php" name="theForm" enctype="multipart/form-data" onsubmit="return validate()">
+<table cellspacing="1" cellpadding="3" width="100%">
+  <tr>
+    <td class="label">充值用户：</td>
+    <td>{$apply.user_name}</td>
+  </tr>
+  <tr>
+    <td class="label">充值金额：</td>
+    <td>{$apply.money}元</td>
+  </tr>
+  <tr>
+    <td class="label">充值时间：</td>
+    <td>{$apply.create_time_format}</td>
+  </tr>
+    <tr>
+        <td class="label">充值到账户信息：</td>
+        <td>{$apply.bank_info_account_name}</td>
+    </tr>
+    <tr>
+        <td class="label">充值到账号信息：</td>
+        <td>{$apply.bank_info_account}</td>
+    </tr>
+    <tr>
+        <td class="label">充值到开户行信息：</td>
+        <td>{$apply.bank_info_account_branch}</td>
+    </tr>
+    <tr>
+        <td class="label">审核：</td>
+        <td><input type="radio" name="audit" value="-1" />拒绝 <input type="radio" name="audit" value="1" />同意</td>
+    </tr>
+  <tr>
+    <td class="label">拒绝理由：</td>
+    <td><textarea  name="refused_reason" cols="60" rows="4"  >{$apply.referee_desc}</textarea></td>
+  </tr>
+</table>
+
+<table align="center">
+  <tr>
+    <td colspan="2" align="center">
+      <input type="submit" class="button" id="btnOK" value="{$lang.button_submit}" />
+      <input type="reset" class="button" value="{$lang.button_reset}" />
+      <input type="hidden" name="act" value="{$form_action}" />
+      <input type="hidden" name="id" value="{$apply.id}" />
+    </td>
+  </tr>
+</table>
+</form>
+</div>
+{insert_scripts files="../js/utils.js,validator.js"}
+{literal}
+<script language="JavaScript">
+<!--
+document.forms['theForm'].elements['referee_name'].focus();
+
+onload = function()
+{
+    // 开始检查订单
+    startCheckOrder();
+}
+/**
+ * 检查表单输入的数据
+ */
+function validate()
+{
+    //让按钮失效，方式双击
+    $("#btnOK").attr("disabled", true);
+    window.setTimeout(function(){
+        $("#btnOK").attr("disabled", false);
+    },1000);
+
+    validator = new Validator("theForm");
+    validator.required("audit",  no_audit);
+    var radio = document.getElementsByName("audit");
+    for (var i=0; i<radio.length; i++) {
+        if (radio[i].checked) {
+            if(radio[i].value == -1){
+                validator.required("refused_reason",  no_refused_reason);
+            }
+        }
+    }
+
+    return validator.passed();
+}
+//-->
+</script>
+{/literal}
+{include file="pagefooter.htm"}

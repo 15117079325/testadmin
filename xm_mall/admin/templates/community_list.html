@@ -1,0 +1,131 @@
+<!-- $Id: goods_list.htm 17126 2010-04-23 10:30:26Z liuhui $ -->
+
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+
+<div style="text-align: right;"><a href="community.php?act=create"><input class="button" type="submit" value=" 新建 "></a></div>
+
+<!-- 商品列表 -->
+<form method="post" action="" name="listForm" onsubmit="return confirmSubmit(this)">
+    <!-- start goods list -->
+    <div class="list-div" id="listDiv">
+        {/if}
+        <table cellpadding="3" cellspacing="1">
+            <tr>
+                <th>
+                    ID
+                </th>
+                <th>标题</th>
+                <th>图片</th>
+                <th>排序</th>
+                <th>更新时间</th>
+                <th>操作</th>
+            <tr>
+                {foreach from=$community_list item=community}
+            <tr>
+
+                <td>{$community.id}</td>
+
+                <td>{$community.title}</td>
+
+                <td style="width:100px;">
+                    <img width="160px;" height="80px;" src="{$community.img_src}" alt="图片">
+                </td>
+
+                <td>{$community.sort}</td>
+
+                <td>
+                    {$community.update_time}
+                </td>
+
+                <td align="center">
+                    <a href="community.php?act=edit&id={$community.id}{if $code neq 'real_goods'}&extension_code={$code}{/if}"
+                       title="{$lang.edit}"><img src="images/icon_edit.gif" width="16" height="16" border="0"/></a>
+                    
+                    <img src="images/{if $community.status==1}yes{else}no{/if}.gif"
+                         onclick="remove_comm(this,{$community.id})"
+                         data="{$community.status}"/>
+
+                    <a href="javascript:;" onclick="remove_community(this,{$community.id})" title="{$lang.trash}"><img
+                            src="images/icon_trash.gif" width="16" height="16" border="0"/></a>
+                </td>
+            </tr>
+            {foreachelse}
+            <tr>
+                <td class="no-records" colspan="15">{$lang.no_records}</td>
+            </tr>
+            {/foreach}
+            <tr>
+                <td align="right" nowrap="true" colspan="10">{include file="page.htm"}</td>
+            </tr>
+        </table>
+
+        {if $full_page}
+    </div>
+    <!-- end ad_position list -->
+</form>
+
+
+<script type="text/javascript" language="JavaScript">
+    function update_name(obj) {
+        $(obj).text('');
+        $(obj).next().show();
+    }
+
+    function remove_comm(obj, id) {
+        var status = $(obj).attr('data');
+        $.ajax({
+            type: 'post',
+            url: 'community.php?act=remove',
+            data: {id: id,status: status},
+            dataType: 'json',
+            success: function (data) {  //请求成功回调函数
+                var status = data.status; //获取返回值
+                if (status == 1) {  //判断状态码，200为成功
+                    $(obj).attr('data', status);
+                    $(obj).attr('src', 'images/yes.gif');
+                }  else if (status == 0 || status == 2){
+                    $(obj).attr('data', status);
+                    $(obj).attr('src', 'images/no.gif');
+                }
+            },
+        });
+    }
+
+    function remove_community(obj, id) {
+        if (confirm('确定要删除吗')) {
+            $.ajax({
+                type: 'post',
+                url: 'community.php?act=remove_community',
+                data: {id: id},
+                dataType: 'json',
+                success: function (data) {  //请求成功回调函数
+                    var status = data.status; //获取返回值
+                    if (status == 1) {  //判断状态码，200为成功
+                        $(obj).parent().parent().remove();
+                        alert('删除成功')
+                    } else {
+                        alert('请重新操作')
+                    }
+                },
+            });
+        }
+    }
+
+    listTable.recordCount = {$record_count};
+    listTable.pageCount = {$page_count};
+    listTable.query = "query"
+    {foreach from=$filter item=item key=key}
+    listTable.filter.{$key} = '{$item}';
+    {/foreach}
+        {literal}
+        onload = function()
+        {
+            // 开始检查订单
+            startCheckOrder();
+        }
+        {/literal}
+</script>
+{include file="pagefooter.htm"}
+{/if}

@@ -1,0 +1,180 @@
+<!-- $Id: agency_list.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+<script type="text/javascript" src="../js/calendar.php?lang={$cfg_lang}"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css" />
+
+<!-- 搜索 -->
+<div class="form-div">
+  <form action="javascript:searchApply()" name="searchForm">
+    <img src="images/icon_search.gif" width="26" height="22" border="0" alt="SEARCH" />
+    <select name="inout_type" >
+      <option value="out" {if $inout_type eq 'out'}selected="selected"{/if}>转出</option>
+      <option value="in" {if $inout_type eq 'in'}selected="selected"{/if}>转入</option>
+    </select>
+    <select name="transfer_type" >
+      <option value="cash" {if $transfer_type eq 'cash'}selected="selected"{/if}>新美积分</option>
+      <option value="consume" {if $transfer_type eq 'consume'}selected="selected"{/if}>消费积分</option>
+    </select>
+
+    日期<input name="start_time"  value="{$filter.start_time}" id="start_time" type="text" style="min-width: 20px"
+             readonly="readonly" onclick="return showCalendar('start_time', '%Y-%m-%d', false, true, 'start_time');">&nbsp;&nbsp;至&nbsp;&nbsp;
+    <input name="end_time" value="{$filter.end_time}" id="end_time" type="text" style="min-width: 20px" readonly="readonly"
+           onclick="return showCalendar('end_time', '%Y-%m-%d', false, true, 'end_time');">
+
+    会员名称<input type="text" name="keyword" placeholder="手机号/用户名/邮箱" />
+
+    <input type="submit" value="{$lang.button_search}" class="button" />
+    <a onclick="return setDate('d')">本日</a>
+    <a onclick="return setDate('w')">本周</a>
+    <a onclick="return setDate('m')">本月</a>
+    <a onclick="return setDate('y')">本年</a>
+  </form>
+</div>
+
+<form method="post" action="" name="listForm">
+<div class="list-div" id="listDiv">
+{/if}
+  <table cellpadding="3" cellspacing="1">
+    <tr>
+      <th>用户名</th>
+      <th>转账次数</th>
+      <th>累积转账金额</th>
+      <th>会员限制</th>
+      <th>{$lang.handler}</th>
+    </tr>
+    {foreach from=$datalist item=apply}
+    <tr>
+      <td>{$apply.user_name|nl2br}</td>
+      <td>{$apply.CNT|nl2br}</td>
+      <td>{$apply.money|nl2br}元</td>
+      <td>{if $apply.limit_flg ==0 }无
+        <a href="users.php?act=user_restriction&id={ $apply.user_id }">  (点击添加)</a>
+        {else}
+        有<a href="users.php?act=user_restriction&id={ $apply.user_id }">  (点击查看)</a>{/if}</td>
+      <td align="center">
+        <a href="mq_account_transfer_stats_detail.php?act=list&user_id={$apply.user_id}&inout_type={$filter.inout_type}&transfer_type={$filter.transfer_type}&start_time={$filter.start_time}&end_time={$filter.end_time}" title="查看明细">查看明细</a>
+    </tr>
+    {foreachelse}
+    <tr><td class="no-records" colspan="10">{$lang.no_records}</td></tr>
+    {/foreach}
+  </table>
+<table id="page-table" cellspacing="0">
+  <tr>
+    <td>
+    </td>
+    <td align="right" nowrap="true">
+    {include file="page.htm"}
+    </td>
+  </tr>
+</table>
+
+{if $full_page}
+</div>
+</form>
+
+<script type="text/javascript" language="javascript">
+
+  var getDays = function ()
+  {
+    var now = new Date;
+    var day = now.getDay ();
+    if(day==0){
+      day =7;
+    }
+    var week = "1234567";
+    var first = 0 - week.indexOf (day);
+    var f = new Date;
+    f.setDate (f.getDate () + first);
+    var last = 6 - week.indexOf (day);
+    var l = new Date;
+    l.setDate (l.getDate () + last);
+    return [
+      f, l
+    ];
+  }
+
+  Date.prototype.format = function(fmt) {
+    var o = {
+      "M+" : this.getMonth()+1,                 //月份
+      "d+" : this.getDate(),                    //日
+      "h+" : this.getHours(),                   //小时
+      "m+" : this.getMinutes(),                 //分
+      "s+" : this.getSeconds(),                 //秒
+      "q+" : Math.floor((this.getMonth()+3)/3), //季度
+      "S"  : this.getMilliseconds()             //毫秒
+    };
+    if(/(y+)/.test(fmt)) {
+      fmt=fmt.replace(RegExp.$1, (this.getFullYear()+"").substr(4 - RegExp.$1.length));
+    }
+    for(var k in o) {
+      if(new RegExp("("+ k +")").test(fmt)){
+        fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
+      }
+    }
+    return fmt;
+  }
+
+  function setDate(k){
+    var myDate = new Date();
+    if( k == 'd'){
+      $('#start_time').val(myDate.format('yyyy-MM-dd'));
+      $('#end_time').val(myDate.format('yyyy-MM-dd'));
+    } else if(k== 'w'){
+      var days = getDays();
+      $('#start_time').val(days[0].format('yyyy-MM-dd'));
+      $('#end_time').val(days[1].format('yyyy-MM-dd'));
+    } else if(k == 'm') {
+      var df = new Date(myDate.getFullYear(),myDate.getMonth(),1);
+      $('#start_time').val(df.format('yyyy-MM-dd'));
+      var dt = new Date(myDate.getFullYear(),myDate.getMonth(),myDate.getMonthDays(myDate.getMonth()));
+      $('#end_time').val(dt.format('yyyy-MM-dd'));
+
+    } else if (k == 'y') {
+      var df = new Date(myDate.getFullYear(),0,1);
+      //df.setFullYear(myDate.getYear(),1,1);
+      $('#start_time').val(df.format('yyyy-MM-dd'));
+
+      var dt = new Date(myDate.getFullYear(),11,31);
+      $('#end_time').val(dt.format('yyyy-MM-dd'));
+    }
+
+    document.forms['searchForm'].submit();
+
+    return false;
+  }
+
+</script>
+
+<script type="text/javascript" language="javascript">
+
+  <!--
+  listTable.recordCount = {$record_count};
+  listTable.pageCount = {$page_count};
+
+  {foreach from=$filter item=item key=key}
+  listTable.filter.{$key} = '{$item}';
+  {/foreach}
+
+  {literal}
+
+  /**
+   * 搜索
+   */
+  function searchApply()
+  {
+    listTable.filter['inout_type'] = Utils.trim(document.forms['searchForm'].elements['inout_type'].value);
+    listTable.filter['transfer_type'] = Utils.trim(document.forms['searchForm'].elements['transfer_type'].value);
+    listTable.filter['keywords'] = Utils.trim(document.forms['searchForm'].elements['keyword'].value);
+    listTable.filter['start_time'] = Utils.trim(document.forms['searchForm'].elements['start_time'].value);
+    listTable.filter['end_time'] = Utils.trim(document.forms['searchForm'].elements['end_time'].value);
+    listTable.filter['page'] = 1;
+    listTable.loadList();
+  }
+
+  {/literal}
+  //-->
+</script>
+{include file="pagefooter.htm"}
+{/if}

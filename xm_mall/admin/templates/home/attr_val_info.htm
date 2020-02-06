@@ -1,0 +1,41 @@
+<!-- $Id: ads_info.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+{include file="pageheader.htm"}
+<script type="text/javascript" src="../js/calendar.php?lang={$cfg_lang}"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css" />
+<div class="main-div">
+    <form action="app_attr.php" method="post" name="theForm" enctype="multipart/form-data" onsubmit="return validate()">
+        <table width="100%" id="general-table">
+            <tr>
+                <td  class="label">
+                        </a>属性名字</td>
+                <td>
+                    <select name="attr_val">
+                        {foreach from=$all_attr item=all_attr}
+                        <option value="{$all_attr.attr_id}">{$all_attr.attr_title}</option>
+                        {/foreach}
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td  class="label">
+                        </a>属性值名称</td>
+                <td>
+                    <textarea style="height:400px;" name="attr_val_name" value=""></textarea><span class="require-field">可填写多个属性名称，但每行填写一个属性名称，不要有任何符号</span>
+                </td>
+            </tr>
+
+            </tbody>
+            <tr>
+                <td class="label">&nbsp;</td>
+                <td>
+                    <input type="submit" value="{$lang.button_submit}" class="button" onclick="return checkImg();"/>
+                    <input type="reset" value="{$lang.button_reset}" class="button" />
+                    <input type="hidden" name="act" value="{$form_act}" />
+                    <input type="hidden" name="id" value="{$nav.sk_id}" />
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+{include file="pagefooter.htm"}

@@ -1,0 +1,36 @@
+<!-- $Id: ads_info.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+{include file="pageheader.htm"}
+<script type="text/javascript" src="../js/calendar.php?lang={$cfg_lang}"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css" />
+<div class="main-div">
+    <form action="home_hot_search.php" method="post" name="theForm" enctype="multipart/form-data" onsubmit="return validate()">
+        <table width="100%" id="general-table">
+            <tr>
+                <td  class="label">
+                        </a>热搜词</td>
+                <td>
+                    <input type="text" name="keywords" value="{$nav.sk_title}" size="35" /><span class="require-field">*</span>
+                </td>
+            </tr>
+             <tr>
+                <td  class="label">
+                        </a>排序</td>
+                <td>
+                    <input type="number" name="sort" value="{$nav.sk_sort}" size="35" /><span class="require-field">*</span>
+                </td>
+            </tr>
+            </tbody>
+            <tr>
+                <td class="label">&nbsp;</td>
+                <td>
+                    <input type="submit" value="{$lang.button_submit}" class="button" onclick="return checkImg();"/>
+                    <input type="reset" value="{$lang.button_reset}" class="button" />
+                    <input type="hidden" name="act" value="{$form_act}" />
+                    <input type="hidden" name="id" value="{$nav.sk_id}" />
+                </td>
+            </tr>
+        </table
+    </form>
+</div>
+
+{include file="pagefooter.htm"}

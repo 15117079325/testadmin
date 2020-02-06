@@ -1,0 +1,165 @@
+{include file="pageheader.htm"}
+{insert_scripts files="validator.js"}
+<div class="main-div">
+<form method="post" action="mq_cash_audit.php" name="theForm"  id="theForm"  enctype="multipart/form-data">
+<table cellspacing="1" cellpadding="3" width="100%">
+  <tr>
+    <td class="label">银行：</td>
+    <td>{$apply.bank_name}</td>
+  </tr>
+  <tr>
+    <td class="label">银行卡号：</td>
+    <td>{$apply.account}</td>
+  </tr>
+  <tr>
+    <td class="label">姓名：</td>
+    <td>{$apply.owner_name}</td>
+  </tr>
+    <tr>
+        <td class="label">开户行：</td>
+        <td>{$apply.branch}</td>
+    </tr>
+    <tr>
+        <td class="label">金额：</td>
+        <td>{$apply.amount}元</td>
+    </tr>
+	<tr>
+        <td class="label">手续费：</td>
+        <td>{$apply.fee}元</td>
+    </tr>
+	<tr>
+        <td class="label">实际支付金额：</td>
+        <td>{$money}元</td>
+    </tr>
+  <tr>
+    <td class="label">处理结果：</td>
+    <td><textarea  name="app_result" cols="60" rows="4"  id="app_result" placeholder="最长100字">{$apply.app_result}</textarea></td>
+  </tr>
+    {if $takeapi_flg eq 0 }
+    <tr>
+        <td class="label"></td>
+        <td style="color: red">温馨提示：此笔金额因银行暂不支持快钱提现，需要手动打款。</td>
+    </tr>
+    {/if}
+    <input type="hidden" value="{$takeapi_flg}" id="hdtakeapi_flg"/>
+</table>
+
+<table align="center">
+  <tr>
+    <td colspan="2" align="center">
+      <input type="button" class="button" id="btnMan" value="同意（人工打款）" />
+      <input type="button" class="button" id="btnNG" value="拒绝" />
+      <input type="reset" class="button" value="{$lang.button_reset}" />
+      <input type="hidden" name="act" value="{$form_action}" />
+      <input type="hidden" name="id" value="{$apply.wid}" />
+      <input type="hidden" id="audit" name="audit" value="" />
+    </td>
+  </tr>
+</table>
+</form>
+</div>
+{insert_scripts files="../../js/utils.js,../../js/layer/layer.js"}
+{literal}
+<script language="JavaScript">
+
+
+    $("#btnAuto").click(function(){
+        var app_result = $("#app_result").val();
+        if(!app_result){
+            alert('请输入处理结果');
+            return false;
+        }
+
+        layer.confirm('确认同意该笔提现吗(自动打款)？', {
+            btn : [ '确定', '取消' ]//按钮
+        }, function(index) {
+            $("#audit").val("1");
+             $("#theForm").submit();
+            layer.close(index);
+        })
+    });
+    $("#btnMan").click(function(){
+        var app_result = $("#app_result").val();
+        if(!app_result){
+            alert('请输入处理结果');
+            return false;
+        }
+        layer.confirm('确认同意该笔提现吗(人工打款)？', {
+            btn : [ '确定', '取消' ]//按钮
+        }, function(index) {
+            $("#audit").val("2");
+            $("#theForm").submit();
+            layer.close(index)
+        });
+    });
+    $("#btnNG").click(function(){
+        var app_result = $("#app_result").val();
+        if(!app_result){
+            alert('请输入处理结果');
+            return false;
+        }
+        layer.confirm('确认拒绝该笔提现吗？', {
+            btn : [ '确定', '取消' ]//按钮
+        }, function(index) {
+            $("#audit").val("3");
+            $("#theForm").submit();
+            layer.close(index);
+        });
+    });
+//        try{
+
+//            //让按钮失效，方式双击
+//            $("#btnOK").attr("disabled", true);
+//            window.setTimeout(function(){
+//                $("#btnOK").attr("disabled", false);
+//            },1000);
+//            var audit = 1;
+//            //验证
+//            var audit_value =1;
+//
+//            validator = new Validator("theForm");
+//            validator.required("audit",  '请选择同意还是拒绝');
+//            var radio = document.getElementsByName("audit");
+//            for (var i=0; i<radio.length; i++) {
+//                if (radio[i].checked) {
+//                    audit_value = radio[i].value;
+//                    if(radio[i].value == 2){
+//                        validator.required("app_result",  '请输入处理结果');
+//                    }
+//                    break;
+//                }
+//            }
+//
+//            if( !validator.passed()){
+//                return;
+//            }
+
+//            //询问框
+//            var flg = document.getElementById('hdtakeapi_flg').value;
+//            var content = audit_value==2?'将拒绝该笔提现，你确定要继续吗？':(flg ==1? '将自动打入对方账户，你确定要继续吗?':'本次提现需要人工打款，您确定已经打款了吗');
+//
+//            layer.confirm(content, {
+//                btn: ['是','否'], //按钮
+//                title : '确认',
+//                icon : 0
+//            }, function(){
+//                var frm = document.getElementsByName('theForm');
+//                frm[0].submit();
+//            }, function(){
+//                //do nothing
+//            });
+
+//        } catch(e){
+//            alert(e.message);
+//        }
+
+
+//
+//    $("#btnAuto").click(function(){
+//
+//
+//    });
+
+</script>
+{/literal}
+{include file="pagefooter.htm"}

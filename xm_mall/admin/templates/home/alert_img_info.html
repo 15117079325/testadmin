@@ -1,0 +1,64 @@
+<!-- $Id: ads_info.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+{include file="pageheader.htm"}
+<script type="text/javascript" src="../js/calendar.php?lang={$cfg_lang}"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css" />
+<div class="main-div">
+    <form action="home_service.php" method="post" name="theForm" enctype="multipart/form-data" onsubmit="return validate()">
+        <table width="100%" id="general-table">
+
+            <tr>
+                <td class="label">标题</td>
+                <td>
+                    <input type="text" name="title" value="{$alert_img.title}">
+                </td>
+            </tr>
+            <tr>
+                <td class="label">图片</td>
+                <td>
+                    <input type="file" name="alert_img" size="35" />
+                    <input type="hidden" name="alert_img_hidden" size="35" value="{$alert_img.img_src}"/>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">类型</td>
+                <td>
+                    <select class="chzn-select" name="type">
+                        <option value='1' {if $alert_img.type==1}selected{/if}>商品</option>
+                        <option value="2" {if $alert_img.type==2}selected{/if}>web页面</option>
+                        <option value="3" {if $alert_img.type==3}selected{/if}>火粉社区</option>
+                    </select>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">跳转目标</td>
+                <td>
+                    <input type="text" name="target" value="{$alert_img.target}">
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">状态</td>
+                <td>
+                    <select class="chzn-select" name="status">
+                        <option value='1' {if $alert_img.status==1}selected{/if}>弹出</option>
+                        <option value="2" {if $alert_img.status==2}selected{/if}>不弹出</option>
+                    </select>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">&nbsp;</td>
+                <td>
+                    <input type="submit" value="{$lang.button_submit}" class="button" onclick="return checkImg();"/>
+                    <input type="reset" value="{$lang.button_reset}" class="button" />
+                    <input type="hidden" name="act" value="{$form_act}" />
+                    <input type="hidden" name="id" value="{$alert_img.id}" />
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+{include file="pagefooter.htm"}

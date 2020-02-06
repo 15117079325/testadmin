@@ -1,0 +1,109 @@
+<!-- $Id: goods_info.htm 17126 2010-04-23 10:30:26Z liuhui $ -->
+<!-- 修改 by www.68ecshop.com 百度编辑器 begin -->
+
+{include file="pageheader_bd.htm"} {insert_scripts files="../js/utils.js,selectzone_bd.js,colorselector.js"}
+<!-- 修改 by www.68ecshop.com 百度编辑器 end -->
+<script type="text/javascript" src="../js/calendar.php?lang={$cfg_lang}"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css" />
+<!-- 代码增加 By  www.68ecshop.com 促销商品时间精确到时分 Start -->
+<script type="text/javascript" src="../js/My97DatePicker/WdatePicker.js"></script>
+<!-- 代码增加 By  www.68ecshop.com 促销商品时间精确到时分 End -->
+
+<script type="text/javascript" src="../js/jquery-3.3.1.min.js"></script>
+<!-- zTree Style -->
+<link href="styles/zTree/zTreeStyle.css" rel="stylesheet" type="text/css" />
+{insert_scripts files='jquery.ztree.all-3.5.min.js,category_selecter.js'} {if $warning}
+<ul style="padding:0; margin: 0; list-style-type:none; color: #CC0000;">
+    <li style="border: 1px solid #CC0000; background: #FFFFCC; padding: 10px; margin-bottom: 5px;">{$warning}</li>
+</ul>
+{/if}
+
+<!-- start goods form -->
+<div class="tab-div">
+    <!-- tab bar -->
+    <div id="tabbar-div">
+        <p>
+            <span class="tab-front" id="general-tab">通用信息</span>
+            <span class="tab-back" id="detail-tab">详细内容</span>
+        </p>
+    </div>
+
+    <!-- tab body -->
+    <div id="tabbody-div">
+        <form enctype="multipart/form-data" action="" method="post" name="theForm">
+            <!-- 最大文件限制 -->
+            <input type="hidden" name="MAX_FILE_SIZE" value="2097152" />
+            <!-- 通用信息 -->
+            <table width="100%" id="general-table" align="center">
+                <tr>
+                    <td class="label">标题</td>
+                    <td>
+                        <input type="text" name="title" value="{$community.title|escape}" size="20"/>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="label">描述</td>
+                    <td>
+                        <textarea name="comm_describe" style="width: 217px;height: 75px;">{if !empty($community.comm_describe)}{$community.comm_describe}{/if}</textarea>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="label">状态</td>
+                    <td>
+                        <select  name="status">
+                            <option value='1' {if $community.status==1}selected{/if}>显示</option>
+                            <option value="2" {if $community.status==2}selected{/if}>不显示</option>
+                        </select>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="label">封面图片</td>
+                    <td>
+                        <input type="file" name="img" size="35" />
+                        <input type="hidden" name="img_hidden" size="35" value="{$community.img_src}"/>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="label">排序</td>
+                    <td>
+                        <input  type="text" name="sort" value="{$community.sort|escape}">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="label">阅读数</td>
+                    <td>
+                        <input  type="text" name="show_num" value="{$community.show_num|escape}">
+                    </td>
+                </tr>
+
+            </table>
+
+            <!-- 详细描述 -->
+            <table width="100%" id="detail-table" style="display:none">
+                <tr>
+                    <td>{$FCKeditor}</td>
+                </tr>
+            </table>
+
+            <div class="button-div">
+
+                <input type="submit" value="{$lang.button_submit}" class="button" onclick="return checkImg();"/>
+                <input type="reset" value="{$lang.button_reset}" class="button"/>
+                <input type="hidden" name="id" value="{$community.id}"/>
+
+            </div>
+            <input type="hidden" name="act" value="{$form_act}" />
+        </form>
+    </div>
+</div>
+<!-- end goods form -->
+{insert_scripts files="validator.js,tab.js"}
+<script language="JavaScript">
+
+</script>
+{include file="pagefooter.htm"}

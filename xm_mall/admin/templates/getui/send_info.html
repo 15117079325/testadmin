@@ -1,0 +1,88 @@
+<!-- $Id: ads_info.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+{include file="pageheader.htm"}
+<script type="text/javascript" src="../js/calendar.php?lang={$cfg_lang}"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="../js/select/jquery.combo.select.js"></script>
+<link href="../js/select/combo.select.css" rel="stylesheet" type="text/css"/>
+<div class="main-div">
+    <form action="" method="post" name="theForm" enctype="multipart/form-data" onsubmit="return validate()">
+        <table width="100%" id="general-table">
+
+            <tr>
+                <td class="label">标题</td>
+                <td>
+                    <input type="text" name="title" value="{$getui.title|escape}" size="20"/>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">内容</td>
+                <td>
+                    <input type="text" name="content" value="{$getui.content|escape}" size="20"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">类型</td>
+                <td>
+                    <select class="chzn-select jump_type" name="type">
+                        <option value='1' {if $getui.type==1}selected{/if}>商品</option>
+                        <option value="2" {if $getui.type==2}selected{/if}>web页面</option>
+                        <option value="3" {if $getui.type==3}selected{/if}>火粉社区</option>
+                        <option value="4" {if $getui.type==4}selected{/if}>普通消息</option>
+                    </select>
+                </td>
+            </tr>
+
+            <tr id="goods_type" {if !$is_add}{if $getui.type !=1}style="display:none"{/if}{/if}>
+                <td class="label">选择商品</td>
+                <td>
+                    <select class="combo-select" name="goods_id">
+                        {foreach from=$goods item=goods}
+                        <option value='{$goods.p_id}' {if $goods.p_id==$ads.itemId}selected{/if}>{$goods.p_title}
+                        </option>
+                        {/foreach}
+                    </select>
+                </td>
+            </tr>
+
+            <tr id="like_type" {if $getui.type !=2}style="display:none"{/if}>
+                <td class="label">跳转链接</td>
+                <td>
+                    <input type="text" name="jump_targets" value="{$getui.jump_targets}">
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">&nbsp;</td>
+                <td>
+                    <input type="submit" value="{$lang.button_submit}" class="button" onclick="return checkImg();"/>
+                    <input type="reset" value="{$lang.button_reset}" class="button"/>
+                    <input type="hidden" name="act" value="{$form_act}"/>
+                    <input type="hidden" name="id" value="{$getui.id}"/>
+                </td>
+            </tr>
+
+        </table>
+    </form>
+</div>
+{insert_scripts files="../js/utils.js,validator.js"}
+<script language="JavaScript">
+    $(".jump_type").change(function () {
+
+        if($(this).val()==1) {
+            $("#goods_type").show();
+            $("#like_type").hide();
+        } else if($(this).val()==2) {
+            $("#goods_type").hide();
+            $("#like_type").show();
+        }else {
+            $("#goods_type").hide();
+            $("#like_type").hide();
+        }
+
+    });
+    $(function () {
+        $('.combo-select').comboSelect();
+    });
+</script>
+{include file="pagefooter.htm"}

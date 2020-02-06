@@ -1,0 +1,33 @@
+
+{include file="pageheader.htm"}
+
+<!-- 20180521 1600 V -->
+<style type="text/css">
+    
+    .box {
+
+        padding: 20px;
+    }
+
+    .box span {
+
+        display: inline-block;
+    }
+
+</style>
+
+<div class="main-div box">
+
+    <input type="button" class="button" value="交易大厅说明" onclick="location.href='app_deal.php?act=trading_list'" >
+    <input type="button" class="button" value="交易大厅管理" onclick="location.href='app_deal.php?act=deal_list'">
+    <input type="button" class="button" value="交易日曲线图" onclick="location.href='app_deal.php?act=rec'">
+    <input type="button" class="button" value="服务中心数据统计" onclick="location.href='trade_data_list.php?act=list'">
+    <input type="button" class="button" value="个人业绩排名" onclick="location.href='person_performance_list.php?act=list'">
+
+</div>
+
+{literal}
+
+{/literal}
+
+{include file="pagefooter.htm"}

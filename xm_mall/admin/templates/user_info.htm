@@ -1,0 +1,179 @@
+<!-- $Id: user_info.htm 16854 2009-12-07 06:20:09Z sxc_shop $ -->
+{include file="pageheader.htm"}
+{insert_scripts files="../js/transport.org.js,../js/region.js"}
+<div class="main-div">
+<!-- #代码增加2014-12-23 by www.68ecshop.com  _star -->
+<form method="post" action="users.php" name="theForm" onsubmit="return validate()" enctype="multipart/form-data">
+<!-- #代码增加2014-12-23 by www.68ecshop.com  _end -->
+<table width="100%" >
+  <tr>
+    <td class="label">{$lang.username}:</td>
+    <td>{$user.user_name}</td>
+  </tr>
+
+  <tr>
+    <td class="label">优惠券:</td>
+    <td>{$user.balance} <a href="account_log.php?act=list&user_id={$user.user_id}&type=2">[ {$lang.view_detail_account} ]</a> <br />
+        <span class="notice-span" {if $help_open}style="display:block" {else} style="display:none" {/if} id="noticeShopping"></span></td>
+  </tr>
+  <tr>
+    <td class="label">待释放优惠券:</td>
+    <td>{$user.release_balance} <a href="account_log.php?act=list&user_id={$user.user_id}&type=3">[ {$lang.view_detail_account} ]</a> <br />
+        <span class="notice-span" {if $help_open}style="display:block" {else} style="display:none" {/if} id="noticeUseable"></span></td>
+  </tr>
+  <tr>
+    <td class="label">{$lang.mobile_phone}:</td>
+    <td>{$user.mobile_phone}</td>
+  </tr>
+  <tr>
+    <input id="user_id" type="text" value="{$user.user_id}" hidden>
+    <td class="label">服务中心等级:</td>
+    <td><select name="rank_id" id="Lv">
+      <option value="1" {if $user.rank_id eq 1} selected="selected" {/if}>普通</option>
+      <option value="2" {if $user.rank_id eq 2} selected="selected" {/if}>初级</option>
+      <option value="3" {if $user.rank_id eq 3} selected="selected" {/if}>中级</option>
+      <option value="4" {if $user.rank_id eq 4} selected="selected" {/if}>高级</option>
+      
+    </select></td>
+  </tr>
+  <tr>
+    <td class="label">{$lang.gender}:</td>
+    <td>{if $user.sex==0}保密{elseif $user.sex==1}男{else}女{/if}</td>
+  </tr>
+  <tr>
+    <td class="label">{$lang.birthday}:</td>
+    <td>{$user.birthday}</td>
+  </tr>
+  <tr>
+  	<td class="label">真实姓名:</td>
+    <td>{$user.real_name}</td>
+  </tr>
+  <tr>
+  	<td class="label">身份证号:</td>
+    <td>{$user.card}</td>
+  </tr>
+  <tr>
+  	<td class="label">身份证正面:</td>
+    <td>
+      {if $user.face_card}
+    <img src="{$user.face_card}" style="width: 100px;"/>
+      <a href="users.php?act=show_image&img_url={$user.face}" target="_blank">
+        <img src="images/yes.gif" border="0" />
+      </a>
+      {/if}
+    </td>
+  </tr>
+  <tr>
+  	<td class="label">身份证反面:</td>
+    <td>
+      {if $user.back_card}
+     <img src="{$user.back_card}" style="width: 100px;"/>
+      <a href="users.php?act=show_image&img_url={$user.back}" target="_blank">
+        <img src="images/yes.gif" border="0" />
+      </a>
+      {/if}
+    </td>
+  </tr>
+  {if $user.rank_id>1}
+  <tr>
+  	<td class="label">现居地:</td>
+    <td>{$user.area}</td>
+  </tr>
+  <tr>
+  	<td class="label">详细地址:</td>
+    <td>{$user.address}</td>
+  </tr>
+  {/if}
+  <tr>
+    <td>
+      <button style="float: right;" onclick="UpLv()">保存</button>
+    </td>
+  </tr>
+</table>
+</form>
+</div>
+{insert_scripts files="../js/utils.js,validator.js"}
+{literal}
+<script language="JavaScript">
+<!--
+region.isAdmin = true;
+if (document.forms['theForm'].elements['act'].value == "insert")
+{
+  document.forms['theForm'].elements['username'].focus();
+}
+else
+{
+  document.forms['theForm'].elements['email'].focus();
+}
+
+onload = function()
+{
+    // 开始检查订单
+    startCheckOrder();
+}
+
+ function UpLv()
+ {
+  var lv = $('#Lv').val();
+  var id = $('#user_id').val();
+  $.post('users.php?act=up_info',{lv:lv,id:id});
+ }
+ 
+/**
+ * 检查表单输入的数据
+ */
+
+//function validate()
+//{
+//    validator = new Validator("theForm");
+//
+//    if ($.trim($("#email").val()).length > 0) {
+//		validator.isEmail("email", invalid_email, true);
+//	}
+//	if ($.trim($("#mobile_phone").val()).length > 0) {
+//		validator.isMobile("mobile_phone", invalid_mobile_phone, true);
+//	}
+//	if ($.trim($("#mobile_phone").val()).length == 0 && $.trim($("#email").val()).length == 0) {
+//		alert("邮箱和手机号码至少要填写一项！");
+//		return false;
+//	}
+//
+//    if (document.forms['theForm'].elements['act'].value == "insert")
+//    {
+//        validator.required("username",  no_username);
+//        validator.required("password", no_password);
+//        validator.required("confirm_password", no_confirm_password);
+//        validator.eqaul("password", "confirm_password", password_not_same);
+//
+//        var password_value = document.forms['theForm'].elements['password'].value;
+//        if (password_value.length < 6)
+//        {
+//          validator.addErrorMsg(less_password);
+//        }
+//        if (/ /.test(password_value) == true)
+//        {
+//          validator.addErrorMsg(passwd_balnk);
+//        }
+//    }
+//    else if (document.forms['theForm'].elements['act'].value == "update")
+//    {
+//        var newpass = document.forms['theForm'].elements['password'];
+//        var confirm_password = document.forms['theForm'].elements['confirm_password'];
+//        if(newpass.value.length > 0 || confirm_password.value.length)
+//        {
+//          if(newpass.value.length >= 6 || confirm_password.value.length >= 6)
+//          {
+//            validator.eqaul("password", "confirm_password", password_not_same);
+//          }
+//          else
+//          {
+//            validator.addErrorMsg(password_len_err);
+//          }
+//        }
+//    }
+//    return validator.passed();
+//}
+//-->
+</script>
+{/literal}
+{include file="pagefooter.htm"}

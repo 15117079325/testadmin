@@ -1,0 +1,134 @@
+<!-- $Id: user_info.htm 16854 2009-12-07 06:20:09Z sxc_shop $ -->
+{include file="pageheader.htm"}
+
+{insert_scripts files="../js/utils.js,listtable.js"}
+<div class="main-div">
+<!-- #代码增加2014-12-23 by www.68ecshop.com  _star -->
+
+<!-- #代码增加2014-12-23 by www.68ecshop.com  _end -->
+<table width="100%" >
+  <tr>
+    <td class="label">出售人:</td>
+    <td>{$user.user_name}</td>
+  </tr>
+   <tr>
+    <td class="label">出售人手机号:</td>
+    <td>{$user.mobile_phone}</td>
+  </tr>
+    <td class="label">购买人:</td>
+    <td>
+      {$user.buy_name}
+    </td>
+  </tr>
+   <tr>
+    <td class="label">购买人手机号:</td>
+    <td>{$user.buy_mobile_phone}</td>
+  </tr>
+  <tr>
+    <td class="label">出售状态:</td>
+    <td>
+      {$user.tip}
+    </td>
+  </tr>
+  <tr>
+  	<td class="label">出售个数:</td>
+    <td>{$user.td_num}</td>
+  </tr>
+  <tr>
+  	<td class="label">发布时间:</td>
+    <td>{$user.trade_gmt_create}</td>
+  </tr>
+  <tr>
+  	<td class="label">确认时间:</td>
+    <td>
+      {$user.trade_gmt_sure}
+    </td>
+  </tr>
+  <tr>
+  	<td class="label">银行卡号:</td>
+    <td>
+      {$user.bank_account}
+    </td>
+  </tr>
+  <tr>
+  	<td class="label">开户行:</td>
+    <td>
+      {$user.bank_name}
+    </td>
+  </tr>
+  <tr>
+  	<td class="label">支付宝账号:</td>
+    <td>
+      {$user.ali_account}
+    </td>
+  </tr>
+   <tr>
+  	<td class="label">支付宝收款人:</td>
+    <td>
+      {$user.ali_owner}
+    </td>
+  </tr>
+   <tr>
+  	<td class="label">凭证:</td>
+    <td>
+      {if $user.td_voucher}<img src="{$user.trade_voucher}" style="height: 400px;">{else}{$user.trade_voucher}{/if}
+    </td>
+  </tr>
+   <!--<tr>-->
+  	<!--<td class="label">上传凭证时间:</td>-->
+    <!--<td>-->
+      <!--{$user.trade_gmt_sure}-->
+    <!--</td>-->
+  <!--</tr>-->
+
+  <!--<tr>-->
+  	<!--<td class="label">确认是否有误:</td>-->
+    <!--<td>-->
+      <!--{if $user.trade_status !=5 }-->
+      <!--通过-->
+      <!--{else}-->
+        <!--有误-->
+    	<!--&lt;!&ndash;<select name="check_status" id="check_status" >&ndash;&gt;-->
+            <!--&lt;!&ndash;<option value="1">确认有误</option>&ndash;&gt;-->
+            <!--&lt;!&ndash;<option value="2">确认无误</option>&ndash;&gt;-->
+        <!--&lt;!&ndash;</select>&ndash;&gt;-->
+      <!--{/if}-->
+    <!--</td>-->
+  <!--</tr>-->
+
+  <!--{if $user.trade_status eq 5 }-->
+  <!--<tr>-->
+    <!--<td colspan="2" align="center">-->
+      <!--<input type="button" value="确定" class="button" onclick="checked_s(this,{$tid})"/>-->
+    <!--</td>-->
+  <!--</tr>-->
+  <!--{/if}-->
+</table>
+
+
+</div>
+
+<script>
+
+  function checked_s(obj,tid){
+      var status = $("#check_status option:selected").val();
+      if(confirm('这笔交易是否确认过？')){
+          $.ajax({
+                type:'post',
+                url:'app_deal.php?act=check_status',
+                data:{tid:tid,status:status},
+                dataType:'json',
+                success:function(data){  //请求成功回调函数
+                    var status = data.status; //获取返回值
+                    if(status == 1){  //判断状态码，200为成功
+                        $(obj).parent().parent().prev().remove();
+                        $(obj).parent().parent().remove();
+                    }else{
+                        alert('请重新操作')
+                    }
+                },
+            });
+      }
+  }
+</script>
+{include file="pagefooter.htm"}

@@ -1,0 +1,104 @@
+<!-- $Id: ads_list.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+
+<form method="post" action="" name="listForm">
+<!-- start ads list -->
+<div class="list-div" id="listDiv">
+{/if}
+
+<table cellpadding="3" cellspacing="1">
+  <tr>
+    <th>编号</th>
+    <th>商品ID</th>
+    <th>图片</th>
+    <th>启用</th>
+    <th>{$lang.handler}</th>
+  </tr>
+  {foreach from=$nav_list item=list}
+     <tr>
+    <td class="first-cell">
+    <span>{$list.pr_id}</span>
+    </td>
+     <td class="first-cell">
+    <span>{$list.p_id|escape:html}</span>
+     <td align="center">
+    <img src="{$list.pr_img}" style="width:100px;" />
+    </td>
+    <td align="center"><img src="images/{if $list.pr_status}yes{else}no{/if}.gif" onclick="update_status(this,'pr_status',{$list.pr_id})" data="{$list.pr_status}"/></td>
+      <td align="right">
+      <a href="home_goods.php?act=edit&id={$list.pr_id}" title="{$lang.edit}"><img src="images/icon_edit.gif" border="0" height="16" width="16" /></a>
+      <a href="javascript:;" onclick="remove_goods(this,{$list.pr_id})" title="{$lang.remove}"><img src="images/icon_drop.gif" border="0" height="16" width="16" /></a>
+    </td>
+  </tr>
+  {foreachelse}
+    <tr><td class="no-records" colspan="10">{$lang.no_ads}</td></tr>
+  {/foreach}
+  <tr>
+    <td align="right" nowrap="true" colspan="10">{include file="page.htm"}</td>
+  </tr>
+</table>
+
+{if $full_page}
+</div>
+<!-- end ad_position list -->
+</form>
+
+<script type="text/javascript" language="JavaScript">
+
+  function remove_goods(obj,id){
+      if(confirm('确定要删除吗')){
+         $.ajax({
+                type:'post',
+                url:'home_goods.php?act=remove',
+                data:{id:id},
+                dataType:'json',
+                success:function(data){  //请求成功回调函数
+                    var status = data.status; //获取返回值
+                    if(status == 1){  //判断状态码，200为成功
+                        $(obj).parent().parent().remove();
+                       alert('删除成功')
+                    }else{
+                        alert('请重新操作')
+                    }
+                },
+            });
+      }
+  }
+
+  function update_status(obj,key,id){
+      var status = $(obj).attr('data');
+        $.ajax({
+                type:'post',
+                url:'home_goods.php?act=update_status',
+                data:{key:key,id:id,status:status},
+                dataType:'json',
+                success:function(data){  //请求成功回调函数
+                    var status = data.status; //获取返回值
+                    if(status == 1){  //判断状态码，200为成功
+                        $(obj).attr('data',status);
+                        $(obj).attr('src','images/yes.gif');
+                    }else{
+                        $(obj).attr('data',status);
+                       $(obj).attr('src','images/no.gif');
+                    }
+                },
+            });
+  }
+  listTable.recordCount = {$record_count};
+  listTable.pageCount = {$page_count};
+
+  {foreach from=$filter item=item key=key}
+  listTable.filter.{$key} = '{$item}';
+  {/foreach}
+  {literal}
+  onload = function()
+  {
+    // 开始检查订单
+    startCheckOrder();
+  }
+  {/literal}
+</script>
+{include file="pagefooter.htm"}
+{/if}

@@ -1,0 +1,206 @@
+<!-- $Id: goods_list.htm 17126 2010-04-23 10:30:26Z liuhui $ -->
+
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+
+<!-- 商品搜索 -->
+<div class="form-div">
+    <form action="app_goods.php?act=list" name="">
+
+        <input name="goods_name" type="text" placeholder="请输入商品名" value="{$filter.goods_name}">
+        <select name="goods_type">
+            <option value="0">所有商品</option>
+            <option value="1" {if $filter.goods_type==1}selected{/if}>礼包专区</option>
+            <option value="4" {if $filter.goods_type==4}selected{/if}>新人专享</option>
+            <option value="3" {if $filter.goods_type==3}selected{/if}>品牌专区</option>
+        </select>
+        <select name="status">
+            <option value="0">全部</option>
+            <option value="1" {if $filter.status==1}selected{/if}>精品</option>
+            <option value="2" {if $filter.status==2}selected{/if}>推荐</option>
+        </select>
+        <select name="putaway">
+            <option value="0">全部</option>
+            <option value="1" {if $filter.putaway==1}selected{/if}>上架</option>
+            <option value="2" {if $filter.putaway==2}selected{/if}>下架</option>
+        </select>
+
+        <select name="sort">
+            <option value="0"}>不排序</option>
+            <option value="1" {if $filter.sort==1}selected{/if}>排序降序</option>
+            <option value="2" {if $filter.sort==2}selected{/if}>库存降序</option>
+            <option value="3" {if $filter.sort==3}selected{/if}>销量降序</option>
+        </select>
+
+        <input type="hidden" name="act" value="list">
+        <input type="submit" value=" 搜索 " class="button">
+    </form>
+</div>
+<!-- 商品列表 -->
+<form method="post" action="" name="listForm" onsubmit="return confirmSubmit(this)">
+    <!-- start goods list -->
+    <div class="list-div" id="listDiv">
+        {/if}
+        <table cellpadding="3" cellspacing="1">
+            <tr>
+                <th>
+                    编号
+                </th>
+                <th>商品名</th>
+                <th>商品编号</th>
+                <th>所需金额</th>
+                <th>所需优惠券</th>
+                <th>上架</th>
+                <th>精品</th>
+                <th>推荐</th>
+                <th>排序</th>
+                <th>库存</th>
+                <th>销量</th>
+                <th>操作</th>
+            <tr>
+                {foreach from=$goods_list item=goods}
+            <tr>
+                <td>{$goods.p_id}</td>
+                <td class="first-cell"><span onclick="update_name(this)">{$goods.p_title|escape:html}</span><input
+                        type="text" name="update_name" value="{$goods.p_title|escape:html}" style="display:none;"
+                        onblur="update_names(this,'p_title',{$goods.p_id})"/></td>
+                <td>{$goods.p_sn}</td>
+
+                <td align="right"><span onclick="update_name(this)">{$goods.p_cash|escape:html}</span><input
+                        type="text" name="update_name" value="{$goods.p_cash|escape:html}" style="display:none;"
+                        onblur="update_names(this,'p_cash',{$goods.p_id})"/></td>
+                <td align="right"><span onclick="update_name(this)">{$goods.p_balance|escape:html}</span><input
+                        type="text" name="update_name" value="{$goods.p_balance|escape:html}" style="display:none;"
+                        onblur="update_names(this,'p_balance',{$goods.p_id})"/></td>
+                <td align="center"><img src="images/{if $goods.p_putaway==1}yes{else}no{/if}.gif"
+                                        onclick="update_status(this,'p_putaway',{$goods.p_id})"
+                                        data="{$goods.p_putaway}"/></td>
+                <td align="center"><img src="images/{if $goods.p_boutique}yes{else}no{/if}.gif"
+                                        onclick="update_status(this,'p_boutique',{$goods.p_id})"
+                                        data="{$goods.p_boutique}"/></td>
+                <td align="center"><img src="images/{if $goods.p_recommend}yes{else}no{/if}.gif"
+                                        onclick="update_status(this,'p_recommend',{$goods.p_id})"
+                                        data="{$goods.p_recommend}"/></td>
+
+                <td align="center"><span onclick="update_name(this)">{$goods.p_sort|escape:html}</span><input
+                        type="text" name="update_name" value="{$goods.p_sort|escape:html}" style="display:none;"
+                        onblur="update_names(this,'p_sort',{$goods.p_id})"/></td>
+
+                <td align="right"><span onclick="update_name(this)">{$goods.p_stock|escape:html}</span><input
+                    type="text" name="update_name" value="{$goods.p_stock|escape:html}" style="display:none;"
+                    onblur="update_names(this,'p_stock',{$goods.p_id})"/></td>
+
+                <td align="right"><span onclick="update_name(this)">{$goods.p_sold_num|escape:html}</span><input
+                    type="text" name="update_name" value="{$goods.p_sold_num|escape:html}" style="display:none;"
+                    onblur="update_names(this,'p_sold_num',{$goods.p_id})"/></td>
+
+                <td align="center">
+                    <a href="app_goods.php?act=edit&p_id={$goods.p_id}{if $code neq 'real_goods'}&extension_code={$code}{/if}"
+                       title="{$lang.edit}"><img src="images/icon_edit.gif" width="16" height="16" border="0"/></a>
+                    <a href="javascript:;" onclick="remove_goods(this,{$goods.p_id})" title="{$lang.trash}"><img
+                            src="images/icon_trash.gif" width="16" height="16" border="0"/></a>
+                </td>
+            </tr>
+            {foreachelse}
+            <tr>
+                <td class="no-records" colspan="15">{$lang.no_records}</td>
+            </tr>
+            {/foreach}
+            <tr>
+                <td align="right" nowrap="true" colspan="10">{include file="page.htm"}</td>
+            </tr>
+        </table>
+
+        {if $full_page}
+    </div>
+    <!-- end ad_position list -->
+</form>
+
+
+<script type="text/javascript" language="JavaScript">
+    function update_name(obj) {
+        $(obj).text('');
+        $(obj).next().show();
+    }
+
+    function remove_goods(obj, id) {
+        if (confirm('确定要删除吗')) {
+            $.ajax({
+                type: 'post',
+                url: 'app_goods.php?act=remove_goods',
+                data: {id: id},
+                dataType: 'json',
+                success: function (data) {  //请求成功回调函数
+                    var status = data.status; //获取返回值
+                    if (status == 1) {  //判断状态码，200为成功
+                        $(obj).parent().parent().remove();
+                        alert('删除成功')
+                    } else {
+                        alert('请重新操作')
+                    }
+                },
+            });
+        }
+    }
+
+    function update_names(obj, key, id) {
+        var title = $(obj).val();
+        if (title === '') {
+            alert('名字不能为空');
+            return;
+        }
+        $.ajax({
+            type: 'post',
+            url: 'app_goods.php?act=update_name',
+            data: {key: key, id: id, title: title},
+            dataType: 'json',
+            success: function (data) {  //请求成功回调函数
+                var status = data.status; //获取返回值
+                if (status == 1) {  //判断状态码，200为成功
+                    $(obj).val(title);
+                    $(obj).hide();
+                    $(obj).prev().text(title);
+                } else {
+                    alert('请重新操作')
+                }
+            },
+        });
+    }
+
+    function update_status(obj, key, id) {
+        var status = $(obj).attr('data');
+        $.ajax({
+            type: 'post',
+            url: 'app_goods.php?act=update_status',
+            data: {key: key, id: id, status: status},
+            dataType: 'json',
+            success: function (data) {  //请求成功回调函数
+                var status = data.status; //获取返回值
+                if (status == 1) {  //判断状态码，200为成功
+                    $(obj).attr('data', status);
+                    $(obj).attr('src', 'images/yes.gif');
+                } else if (status == 0 || status == 2) {
+                    $(obj).attr('data', status);
+                    $(obj).attr('src', 'images/no.gif');
+                }
+            },
+        });
+    }
+
+ listTable.recordCount = {$record_count};
+  listTable.pageCount = {$page_count};
+  listTable.query = "query"
+  {foreach from=$filter item=item key=key}
+  listTable.filter.{$key} = '{$item}';
+  {/foreach}
+  {literal}
+  onload = function()
+  {
+    // 开始检查订单
+    startCheckOrder();
+  }
+  {/literal}
+</script>
+{include file="pagefooter.htm"}
+{/if}

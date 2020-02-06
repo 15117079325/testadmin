@@ -1,0 +1,67 @@
+<!-- $Id: ads_list.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+<script type="text/javascript" src="../js/calendar.php?lang={$cfg_lang}"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css"/>
+
+<form method="post" action="" name="listForm">
+    <!-- start ads list -->
+    <div class="list-div" id="listDiv">
+
+
+        <table cellpadding="3" cellspacing="1">
+            <tr>
+                <th>位置</th>
+                <th>倍数</th>
+                <th>描述</th>
+                <th>概率(可设置)</th>
+            </tr>
+            {foreach from=$nav_list item=list}
+            <tr>
+                <td align="center">
+                    <span>{$list.lo_position}</span>
+                </td>
+                <td align="center">
+                    <span>{$list.lo_multiple}</span>
+                </td>
+                <td align="center">
+                    <span>{$list.lo_description}</span>
+                </td>
+                <td align="center"><span onclick="update_name(this)">{$list.lo_rate|escape:html}</span><input type="text" name="update_name" value="{$list.lo_rate|escape:html}" style="display:none;" onblur="update_names(this,'lo_rate',{$list.lo_id})"/></td>
+            </tr>
+            {foreachelse}
+            <tr>
+                <td class="no-records" colspan="10">{$lang.no_ads}</td>
+            </tr>
+            {/foreach}
+        </table>
+
+    </div>
+    <!-- end ad_position list -->
+</form>
+<script type="text/javascript" language="JavaScript">
+function update_name(obj){
+      $(obj).text('');
+      $(obj).next().show();
+  }
+  function update_names(obj,key,id){
+      var title = $(obj).val();
+      $.ajax({
+                type:'post',
+                url:'fruit_settings.php?act=update_name',
+                data:{key:key,id:id,title:title},
+                dataType:'json',
+                success:function(data){  //请求成功回调函数
+                    var status = data.status; //获取返回值
+                    if(status == 1){  //判断状态码，200为成功
+                        $(obj).val(title);
+                        $(obj).hide();
+                        $(obj).prev().text(title);
+                    }else{
+                        alert('请重新操作')
+                    }
+                },
+            });
+  }
+</script>
+

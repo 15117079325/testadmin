@@ -1,0 +1,51 @@
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+
+<form method="post" action="" name="listForm" onsubmit="">
+    <div class="list-div" id="listDiv">
+        {/if}
+        <table cellpadding="3" cellspacing="1">
+            <tr>
+                <th>转出用户ID</th>
+                <th>转出用户</th>
+                <th>转账时间</th>
+                <th>转入用户ID</th>
+                <th>转入用户</th>
+                <th>转账金额</th>
+            </tr>
+            {foreach from=$datalist item=item}
+            <tr>
+                <td>{$item.user_id}</td>
+                <td>{$item.user_name}</td>
+                <td>{$item.create_at_format}</td>
+                <td>{$item.user_id2}</td>
+                <td>{$item.user_name2}</td>
+                <td>{$item.money}</td>
+            </tr>
+            {foreachelse}
+            <tr><td class="no-records" colspan="10">{$lang.no_records}</td></tr>
+            {/foreach}
+        </table>
+        <table cellpadding="4" cellspacing="0">
+            <tr>
+                <td align="right">{include file="page.htm"}</td>
+            </tr>
+        </table>
+        {if $full_page}
+    </div>
+</form>
+
+<script type="text/javascript" language="javascript">
+    <!--
+    listTable.recordCount = {$record_count};
+    listTable.pageCount = {$page_count};
+
+    {foreach from=$filter item=item key=key}
+    listTable.filter.{$key} = '{$item}';
+    {/foreach}
+
+    -->
+</script>
+{include file="pagefooter.htm"}
+{/if}

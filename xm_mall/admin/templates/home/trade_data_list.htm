@@ -1,0 +1,81 @@
+<!-- $Id: ads_list.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+<script type="text/javascript" src="../js/calendar.php?lang={$cfg_lang}"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css"/>
+
+<div class="form-div">
+    <form action="trade_data_list.php?act=list" name="">
+
+        <input name="thedate" value="{$thedate}" id="thedate" type="text"
+               style="min-width: 20px" readonly="readonly"
+               onclick="return showCalendar('thedate', '%Y-%m-%d', false, true, 'thedate');">
+        <select name="rank">
+            <option value="4" {if $rank==4}selected{/if}>30w</option>
+            <option value="3" {if $rank==3}selected{/if}>10w</option>
+            <option value="2" {if $rank==2}selected{/if}>3w</option>
+        </select>
+        <select name="type">
+            <option value="1" {if $type==1}selected{/if}>出售排行</option>
+            <option value="2" {if $type==2}selected{/if}>求购排行</option>
+            <option value="3" {if $type==3}selected{/if}>交易成功排行</option>
+            <!--<option value="4" {if $type==4}selected{/if}>业绩排行</option>-->
+        </select>
+        <input type="hidden" name="act" value="list">
+        <input type="submit" value=" 搜索 " class="button">
+    </form>
+</div>
+<form method="post" action="" name="listForm">
+    <!-- start ads list -->
+    <div class="list-div" id="listDiv">
+        {/if}
+
+        <table cellpadding="3" cellspacing="1">
+            <tr>
+                <th>用户名</th>
+                <th>团队总额</th>
+                <th>服务中心</th>
+
+            </tr>
+            {foreach from=$nav_list item=list}
+            <tr>
+                <td class="first-cell">
+                    <span>{$list.user_name}</span>
+                </td>
+                <td class="first-cell">
+                    <span>{$list.money}</span>
+                </td>
+                <td class="first-cell">
+                    <span>{$list.rank}</span>
+                </td>
+            </tr>
+            {foreachelse}
+            <tr>
+                <td class="no-records" colspan="10">{$lang.no_ads}</td>
+            </tr>
+            {/foreach}
+            <tr>
+                <td align="right" nowrap="true" colspan="10">{include file="page.htm"}</td>
+            </tr>
+        </table>
+
+        {if $full_page}
+    </div>
+    <!-- end ad_position list -->
+</form>
+
+<script type="text/javascript" language="JavaScript">
+    function searchAttr(goodsType) {
+        listTable.filter.page = 1;
+        listTable.loadList();
+    }
+    listTable.recordCount = {$record_count};
+    listTable.pageCount = {$page_count};
+    listTable.query = "query"
+     {foreach from=$filter item=item key=key}
+  listTable.filter.{$key} = '{$item}';
+  {/foreach}
+</script>
+{include file="pagefooter.htm"}
+{/if}

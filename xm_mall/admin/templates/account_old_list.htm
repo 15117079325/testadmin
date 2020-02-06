@@ -1,0 +1,111 @@
+<!-- $Id: account_list.htm 14928 2008-10-06 09:25:48Z testyang $ -->
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+
+<!-- edit 修改会员帐号变动明细页 2017年2月28日 14:48:20 by fzp -->
+<div class="form-div">
+<form method="post" action="account_log.php?act=old_list&user_id={$smarty.get.user_id}&account_id={$smarty.get.account_id}" name="searchForm">
+  <select name="account_type" onchange="document.forms['searchForm'].submit()">
+    <option value="" {if $account_type eq ''}selected="selected"{/if}>所有账户类型</option>
+    <option value="cash" {if $account_type eq 'cash'}selected="selected"{/if}>新美积分</option>
+    <option value="consume" {if $account_type eq 'consume'}selected="selected"{/if}>消费积分</option>
+    <option value="invest" {if $account_type eq 'invest'}selected="selected"{/if}>待用积分</option>
+    <option value="share" {if $account_type eq 'share'}selected="selected"{/if}>分享积分</option>
+    <option value="shopping" {if $account_type eq 'shopping'}selected="selected"{/if}>购物券</option>
+    <option value="useable" {if $account_type eq 'useable'}selected="selected"{/if}>可用积分</option>
+  </select>
+  <strong>{$lang.label_user_name}</strong>{$user.user_name}
+ <strong>新美积分</strong> : <font>{$user.amount}</font>&nbsp;
+  <strong>T 积分</strong> : <font>{$user.unlimit}</font>&nbsp;
+  <strong>消费积分</strong> : <font>{$user.shopp}</font>&nbsp;
+  <strong>团队奖</strong> : <font>{$user.gold_pool}</font>&nbsp;
+  <strong>购物券</strong> : <font>{$user.coupon}</font>&nbsp;
+  <strong>待用积分</strong> : <font>{$user.surplus}</font>
+  </form>
+</div>
+
+<form method="post" action="" name="listForm">
+<div class="list-div" id="listDiv">
+{/if}
+
+  <table cellpadding="3" cellspacing="1">
+    <tr>
+      <th width="20%">账户变动时间</th>
+      <th width="30%">账户变动原因</th>
+      <th>资金类型</th>
+      <!--<th>变动前优惠券</th>-->
+      <th>变动积分</th>
+      <th>变动后优惠券</th>
+    </tr>
+    {foreach from=$account_list item=account}
+    <tr>
+      <td align="center">{$account.change_time}</td>
+      <td align="center">{$account.change_desc|escape:html}</td>
+      <td align="center">
+        {if $account.account_type eq 'cash'}
+        新美积分
+        {elseif $account.account_type eq 'consume'}
+        消费积分
+        {elseif $account.account_type eq 'invest'}
+        待用积分
+        {elseif $account.account_type eq 'register'}
+        注册积分
+        {elseif $account.account_type eq 'share'}
+        分享积分
+        {elseif $account.account_type eq 'shopping'}
+        购物券
+        {else}
+        可用积分
+        {/if}
+      </td>
+      <!--<td align="center">{$account.rest_money}</td>-->
+      <td align="center">
+        {if $account.income_type eq '+'}
+          <span style="color:#0000FF">+{$account.change_money}</span>
+        {elseif $account.income_type eq '-'}
+          <span style="color:#FF0000">-{$account.change_money}</span>
+        {else}
+          {$account.user_money}
+        {/if}
+      </td>
+      <td align="center">{$account.money}</td>
+  <!-- end -->
+  
+    </tr>
+    {foreachelse}
+    <tr><td class="no-records" colspan="6">{$lang.no_records}</td></tr>
+    {/foreach}
+  </table>
+<table id="page-table" cellspacing="0">
+  <tr>
+    <td align="right" nowrap="true">
+    {include file="page.htm"}
+    </td>
+  </tr>
+</table>
+
+{if $full_page}
+</div>
+</form>
+
+<script type="text/javascript" language="javascript">
+  <!--
+  listTable.recordCount = {$record_count};
+  listTable.pageCount = {$page_count};
+  listTable.query = "old_query";
+  {foreach from=$filter item=item key=key}
+  listTable.filter.{$key} = '{$item}';
+  {/foreach}
+
+  {literal}
+  onload = function()
+  {
+      // 开始检查订单
+      startCheckOrder();
+  }
+  {/literal}
+  //-->
+</script>
+{include file="pagefooter.htm"}
+{/if}

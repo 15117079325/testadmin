@@ -1,0 +1,121 @@
+<!-- $Id: ads_info.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+{include file="pageheader.htm"}
+<script type="text/javascript" src="../js/calendar.php?lang={$cfg_lang}"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css" />
+<div class="main-div">
+    <form action="home_navigation.php" method="post" name="theForm" enctype="multipart/form-data" onsubmit="return validate()">
+        <table width="100%" id="general-table">
+            <tr>
+                <td  class="label">
+                        </a>导航栏名字</td>
+                <td>
+                    <input type="text" name="title" value="{$nav.outer_title}" size="35" /><span class="require-field">*</span>
+                </td>
+            </tr>
+
+             <tr>
+                <td  class="label">
+                        </a>跳转链接</td>
+                <td>
+                    <input type="text" name="link" value="{$nav.outer_url}" size="35" />
+                </td>
+            </tr>
+
+            <tr>
+                <td  class="label">
+                    <a href="javascript:showNotice('AdCodeImg');" title="{$lang.form_notice}">
+                        <img src="images/notice.gif" width="16" height="16" border="0" alt="{$lang.form_notice}"></a>上传图片</td>
+                <td>
+                    <input type='file' name='ad_img' size='35' id="img"/>
+                    <br /><span class="notice-span" {if $help_open}style="display:block" {else} style="display:none" {/if} id="AdCodeImg">{$lang.ad_code_img}</span>
+                </td>
+            </tr>
+            <tr style="display: none">
+                <td  class="label">{$lang.img_url}</td>
+                <td><input type="text" name="img_url" value="{$url_src}" size="35" /></td>
+            </tr>
+            </tbody>
+             <tr>
+                <td  class="label">
+                        </a>排序</td>
+                <td>
+                    <input type="text" name="sort" value="{$nav.outer_sort}" size="35" />
+                </td>
+            </tr>
+            <tr>
+                <td  class="label">{$lang.enabled}</td>
+                <td>
+                    是
+                    <input type="radio" name="status" value="1" {if $nav.status eq 1} checked="true" {/if} />{$lang.is_enabled}
+                    否
+                    <input type="radio" name="status" value="0" {if $nav.status eq 0} checked="true" {/if} />{$lang.no_enabled}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">&nbsp;</td>
+                <td>
+                    <input type="submit" value="{$lang.button_submit}" class="button" onclick="return checkImg();"/>
+                    <input type="reset" value="{$lang.button_reset}" class="button" />
+                    <input type="hidden" name="act" value="{$form_act}" />
+                    <input type="hidden" name="id" value="{$nav.outer_id}" />
+                </td>
+            </tr>
+        </table
+    </form>
+</div>
+{insert_scripts files="../js/utils.js,validator.js"}
+<script language="JavaScript">
+    $().ready(function(){
+        $(".chzn-select").chosen();
+    });
+    document.forms['theForm'].elements['ad_name'].focus();
+    <!--
+    var MediaList = new Array('0', '1', '2', '3');
+    {literal}
+    function showMedia(AdMediaType)
+    {
+        for (I = 0; I < MediaList.length; I ++)
+        {
+            if (MediaList[I] == AdMediaType)
+                document.getElementById(AdMediaType).style.display = "";
+            else
+                document.getElementById(MediaList[I]).style.display = "none";
+        }
+    }
+
+    function checkImg(){
+        var upFileName = $("#img").val();
+        var index1=upFileName.lastIndexOf(".");
+        var index2=upFileName.length;
+        var suffix=upFileName.substring(index1+1,index2);//后缀名
+        if(suffix=='pdf'){
+            alert('图片格式不正确！');
+            return false;
+        }
+    }
+
+    /**
+     * 检查表单输入的数据
+     */
+    function validate()
+    {
+        validator = new Validator("theForm");
+        validator.required("ad_name",     ad_name_empty);
+        /* 代码增加 By  www.68ecshop.com Start */
+        validator.islt('start_time', 'end_time', '结束日期不能小于开始日期');
+        /* 代码增加 By  www.68ecshop.com End */
+
+        return validator.passed();
+    }
+
+    onload = function()
+    {
+        // 开始检查订单
+        startCheckOrder();
+        document.forms['theForm'].reset();
+    }
+
+    //-->
+    {/literal}
+</script>
+{include file="pagefooter.htm"}

@@ -1,0 +1,256 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>{$lang.cp_home}{if $ur_here} - {$ur_here}{/if}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <link href="styles/general.css" rel="stylesheet" type="text/css"/>
+    <link href="styles/main.css" rel="stylesheet" type="text/css"/>
+    {literal}
+    {/literal}
+    {insert_scripts files="../js/utils.js,validator.js,../js/jquery.js,../js/layer/layer.js"}
+</head>
+<body style="background:url(images/login_bg.png) repeat-x;padding:0px;">
+<div style="width:1210px;height:768px;margin:0 auto;background:url(images/login_dl.jpg) no-repeat; ">
+    <form method="post" action="privilege.php" name='theForm' id="normalForm">
+        <div id="loginDiv">
+            <table cellspacing="0" cellpadding="0" style=" padding-top:295px; " align="center" class="login_dl"
+                   id="table1">
+                <tr>
+                    <td class="dl">
+                        <table cellspacing="0" cellpadding="0" width="100%">
+                            <tr>
+                                <td class="dl_1" width="22%">{$lang.label_username}</td>
+                                <td><input type="text" name="username" id='user' class="text_input1"/></td>
+                            </tr>
+                            <tr>
+                                <td class="dl_2">{$lang.label_password}</td>
+                                <td><input type="password" name="password" id="pwd" class="text_input1"/></td>
+                            </tr>
+                            {if $gd_version > 0}
+                            <tr>
+                                <td class="dl_1">{$lang.label_captcha}</td>
+                                <td><input type="text" name="captcha" id="captcha" class="capital text_input1"
+                                           style="width:70px; margin-right:5px; float:left; "/><img
+                                        src="index.php?act=captcha&{$random}" width="126" id="img_logincapcha" height="36" alt="CAPTCHA"
+                                        border="0" onclick=this.src="index.php?act=captcha&"+Math.random()
+                                        style="cursor: pointer; float:left " title="{$lang.click_for_another}"/></td>
+                            </tr>
+                            {/if}
+                            <tr class="low_height">
+                                <td>&nbsp;</td>
+                                <td><input type="checkbox" value="1" name="remember" id="remember"/><label
+                                        for="remember">{$lang.remember}</label></td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" align="center">
+                                    <input id="loginBtn" type="button" value="登&nbsp;录" class="button2"/>
+                                </td>
+                            </tr>
+                            <tr class="low_height1">
+                                <td colspan="2" align="right">&raquo; <a href="../">{$lang.back_home}</a> &raquo; <a
+                                        href="get_password.php?act=forget_pwd">{$lang.forget_pwd}</a></td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div id="phoneDiv">
+            <table cellspacing="0" id="table2" cellpadding="0" style=" padding-top:286px; " align="center"
+                   class="login_dl">
+                <tr>
+                    <td class="dl">
+                        <table cellspacing="0" cellpadding="0" width="100%">
+                            <tr>
+                                <td class="dl_1" width="22%">手机号码</td>
+                                <td>
+                                    <input type="text" name="mobile" class="text_input1" disabled="disabled" value=""
+                                           id="phoneNum"/>
+                                </td>
+                                <td><input type="hidden" name="mobile" class="text_input1" value="" id="mobilenum"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="dl_2">验证码</td>
+                                <td>
+                                    <input id="mobile_code" type="text" name="mobile_code" class="text_input1"
+                                           style="width:140px" placeholder="手机验证码"/>
+
+                                    <input id="zphone" class="button4" type="button" value="获取手机验证码 ">
+                                    <div>
+                                        <span id="extend_field5i" class="label"></span>
+                                    </div>
+                                    <div style="clear:both">
+                                        <span class="label" id=""></span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {if $gd_version > 0}
+                            <tr>
+                                <td class="dl_1">{$lang.label_captcha}
+                                </td>
+                                <td><input type="text" id="capPhone" name="captcha_phone" class="capital text_input1"
+                                           style="width:70px; margin-right:5px; float:left; "/><img src="index.php?act=captcha&{$random}"   id="imgcapcha" width="126" height="36" alt="CAPTCHA"
+                                        border="0" onclick=this.src="index.php?act=captcha&"+Math.random() style="cursor: pointer; float:left " title="{$lang.click_for_another}"/>
+                                </td>
+                            </tr>
+                            {/if}
+                            <tr class="low_height">
+                                <td style="height:20px;line-height: 20px;">&nbsp;
+                                </td>
+                                <td style="height:20px;line-height: 20px;">
+                                    <input type="checkbox" value="1" name="remember" id="remember2"/><label
+                                        for="remember">{$lang.remember}</label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" align="center">
+                                    <input type="button" id="phoneBut" value="登&nbsp;录" class="button2"/>
+                                </td>
+                            </tr>
+                            <tr class="low_height1">
+                                <td colspan="2" align="right">&raquo; <a href="../">{$lang.back_home}</a> &raquo;
+                                    <a href="get_password.php?act=forget_pwd">{$lang.forget_pwd}</a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <input type="hidden" name="act" id="hida_ction" value="signin"/>
+
+    </form>
+
+</div>
+
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        $('#phoneDiv').hide();
+    });
+
+    //登录页面 确定按钮
+    document.getElementById("loginBtn").addEventListener("click", function () {
+
+        var username = $('#user').val();
+        var password = $('#pwd').val();
+        var captcha = $('#captcha').val();
+
+        //验证用户名和密码
+        if (!username ) {
+           layer.msg("用户名不能为空");
+            return;
+        } else if (!password) {
+            layer.msg("密码不能为空")
+            return;
+        }
+        //异步发送的参数 用户名 密码 验证码
+        var params = {
+            username: username,
+            password: password,
+            captcha: captcha
+        };
+        /* 异步验证 客户机 IP */
+        $.post("privilege.php?act=check_safe", params, function (result) {
+            var _result = JSON.parse(result);
+            if (_result.status == 1) {
+                //提交表单到 signin 方法
+                $("#normalForm").submit();
+
+            } else if (_result.status == 0 && !_result.code) {
+                //密码错误
+
+                $('#img_logincapcha').click();
+                $('#captcha').val("");
+                layer.msg(_result.message,{time:4000});
+                return false;
+
+            } else if (_result.status == 0 && _result.code == 'MSG_CD_NEED_SAFE_LOGIN') {
+                $('#phoneDiv').show();
+                $('#loginDiv').hide();
+                $("#phoneNum").val(_result.data.phone);
+                $("#mobilenum").val(_result.data.phone); //给隐藏域一个值
+                $('#imgcapcha').click();
+                $('#capPhone').val("");
+                $("#hida_ction").val("phone_signin");
+            }
+        });
+
+    })
+
+    /* 点击发送手机验证码 */
+    $("#zphone").click(function () {
+
+        var phoneNum = $("#phoneNum").val();
+        var captcha = $("#capPhone").val();
+        var mobile_code = $("#mobile_code").val();
+        if(!captcha){
+            layer.msg("请先输入验证码");
+            return false;
+        }
+
+        var params = {phone: phoneNum, captcha: captcha};
+        $.post("privilege.php?act=sendcode", params, function (data) {
+
+            var data = JSON.parse(data);
+
+            /* staus 1 成功  2 发送太频繁 3 发送失败 */
+            switch (data.status) {
+                    /* 验证码发送成功 执行 $("#phoneBut").click(function(){} */
+                case 1:
+                    var obj=  document.getElementById('zphone');
+                    settime(obj);
+                    $('#imgcapcha').click();
+                    $('#capPhone').val("");
+                    break;
+                default:
+                    layer.msg(data.message);
+                    break;
+            }
+        })
+    })
+
+    /* 手机验证码登录 确定*/
+
+    $("#phoneBut").click(function () {
+        var captcha = $("#auth_code").val();
+        var mobile_code = $("#mobile_code").val();
+        if (captcha == "") {
+            layer.msg('请先输入验证码');
+            return false;
+        }
+        if (mobile_code == "") {
+            layer.msg('请先获取手机验证码');
+            return false;
+        }
+
+        $("#normalForm").submit();
+    })
+
+    /* 60s 倒计时 */
+    var countdown = 60;
+    function settime(obj) {
+
+        if (countdown == 0) {
+            obj.removeAttribute("disabled");
+            obj.value = "获取手机验证码";
+            countdown = 60;
+            return;
+        } else {
+            obj.setAttribute("disabled", true);
+            obj.value = "重新发送(" + countdown + ")";
+            countdown--;
+        }
+        setTimeout(function () {
+                settime(obj)
+            }
+            , 1000)
+    }
+
+</script>
+
+</body>

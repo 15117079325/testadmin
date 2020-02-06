@@ -1,0 +1,297 @@
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+
+<!-- 订单搜索 -->
+<script type="text/javascript" src="../js/calendar.php"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css" />
+<div class="form-div">
+    <form action="javascript:searchOrder()" name="searchForm">
+        <img src="images/icon_search.gif" width="26" height="22" border="0" alt="SEARCH" />
+        H单编码<input name="order_sn" type="text" id="bb_sn" size="15">
+        会员名称<input name="user_name" type="text" id="user_name" placeholder="手机号/用户名/邮箱/地区" size="15">
+        联系人<input name="consignee" type="text" id="contact" size="15">
+
+        <input type="text" name="start_time" maxlength="60" size="30" readonly="readonly" id="start_time_id" />
+        <input name="start_time_btn" type="button" id="start_time_btn" onclick="return showCalendar('start_time_id', '%Y-%m-%d %H:%M',
+        '24', false, 'start_time_btn');" value="{$lang.btn_select}" class="button"/>
+        - -      
+        <input type="text" name="end_time" maxlength="60" size="30" readonly="readonly" id="end_time_id" />
+        <input name="end_time_btn" type="button" id="end_time_btn" onclick="return showCalendar('end_time_id', '%Y-%m-%d %H:%M', '24',
+        false, 'end_time_btn');" value="{$lang.btn_select}" class="button"/>
+
+        H单状态
+        <select name="bb_status" id="status">
+            <option value="-1" selected="selected">{$lang.select_please}</option>
+            {html_options options=$status_list}
+        </select>
+
+        <input type="submit" value="{$lang.button_search}" class="button" />
+
+        <br>
+
+        <input id="stop_h_order" type="button" value="暂停H单" class="button" />
+        <input id="recovery_h_order" type="button" value="恢复H单" class="button" />
+        <input id="pause_all"    type="button" value="暂停所有H单" class="button" />
+        <input id="recovery_all" type="button" value="恢复所有H单" class="button" />
+
+    </form>
+</div>
+{/if}
+<!-- 订单列表 -->
+<form method="post" action="order.php?act=operate" name="listForm" >
+    <div class="list-div" id="listDiv">
+        <!--列表-->
+        <table cellpadding="3" cellspacing="1">
+            <tr>
+                <th><input id="se_all" type="checkbox" />会员名称</th>
+                <th>新美优惠券</th>
+                <th>H单编号</th>
+                <th>宝贝</th>
+                <td>属性</td>
+                <td>数量</td>
+                <th>申购金额</th>
+                <th>回购金额</th>
+                <th>状态</th>
+                <th>时间</th>
+                <th>联系人</th>
+                <th>联系电话</th>
+                <th>是否暂停</th>
+            <tr>
+                {foreach from=$order_list item=order key=okey}
+            <tr>
+                <td>
+                    {if $order.bb_status eq 1 or $order.bb_status eq 2}
+                        <input type="checkbox" class="stop_h_userids" name="stop_h_userids" value="{$order.bb_id}" />
+                    {/if}
+                    {$order.user_name}
+                </td>
+                <td>{$order.money}</td>
+                <td>{$order.bb_sn}</td>
+                <td>
+                    <div>
+                        <!--<a style="float: left" {if $order.goods_id gt 0 && $order.extension_code neq 'package_buy'} href="{if $order.extension_code eq 'virtual_good'}{$site_url}/virtual_group_goods.php?id={$order.goods_id}{else}{$site_url}/goods.php?id={$order.goods_id}{/if}"{else}{/if} title="查看宝贝详情" target="_blank">-->
+                        <!--&lt;!&ndash; {if $order.goods_id gt 0 && $order.extension_code neq 'package_buy'} 商品 &ndash;&gt;-->
+                        <!--<img src="/{$order.thumb}" alt="查看宝贝详情" width="50" height="50">-->
+                        <!--&lt;!&ndash; {elseif $order.goods_id gt 0 && $order.extension_code eq 'package_buy'} &ndash;&gt;-->
+                        <!--<img src="themes/68ecshopcom_360buy/images/jmpic/ico_cart_package.gif" alt="查看宝贝详情" width="50" height="50"/>-->
+                        <!--&lt;!&ndash; {/if} &ndash;&gt;-->
+                        <!--</a>-->
+                        <div class="goods_name">{$order.goods_name}</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="goods_desc" > {if $order.goods_attr}{$order.goods_attr|nl2br}{/if} </div>
+                </td>
+                <!--单价-->
+                <td align="center" class="baobei no-border-right order_goods_info" style="padding:0px;display:none" >
+                    <div class="goods_desc price " style="padding-left:0px;">
+                        <div style="margin-top:14px;">新美积分： {$order.cash_money} <br/>
+                            消费积分： {$order.consume_money}
+                        </div>
+                    </div>
+                </td>
+
+                <!--数量-->
+                <td align="center" class="baobei no-border-right order_goods_info"  style="padding:0px;">
+                    <div class="goods_desc" style="padding-left:0px;line-height:50px;"> {$order.goods_number} </div>
+                </td>
+
+                <!--申购金额-->
+                <td rowspan="1" align="center" class="amount no-border-right"><p class="post-type"><strong>
+                    新美积分： {$order.cash_money_all}<br/>
+                    消费积分： {$order.consume_money_all}
+                </strong></p>
+                </td>
+
+                <!--回购金额-->
+                <td rowspan="1" align="center" class="trade-status no-border-right">{$order.cash_money_bb}<br/>
+                </td>
+
+                <!--状态-->
+                <td rowspan="1" align="center" class="trade-status no-border-right">{$order.bb_status_name}<br/>
+                </td>
+
+                <!--剩余时间-->
+                <td rowspan="1" align="center" class="trade-status no-border-right">
+                    申购：{$order.pay_at_fmt}
+                    <br/>
+                    到期：{$order.expire_at_fmt}
+                    <br/>
+                    <br/>
+                    剩余：{$order.rest_time_fmt}
+                    <br/>
+                </td>
+
+                <!--联系人-->
+                <td rowspan="1" align="center" class="trade-status no-border-right">{$order.contact}<br/>
+                </td>
+
+                <!--联系电话-->
+                <td rowspan="1" align="center" class="trade-status no-border-right last">{$order.contact_phone}<br/>
+                </td>
+                <td>{if $order.is_stop eq '0'}正常{else}暂停{/if}</td>
+            </tr>
+            {/foreach}
+        </table>
+        <!-- 分页 -->
+        <table id="page-table" cellspacing="0">
+            <tr>
+                <td align="right" nowrap="true">
+                    {include file="page.htm"}
+                </td>
+            </tr>
+        </table>
+
+    </div>
+</form>
+
+<script language="JavaScript">
+
+    listTable.recordCount = {$record_count};
+    listTable.pageCount = {$page_count};
+
+    {foreach from=$filter item=item key=key}
+    listTable.filter.{$key} = '{$item}';
+    {/foreach}
+
+    {literal}
+
+    /**
+     * 搜索订单
+     */
+    function searchOrder()
+    {
+        listTable.filter['bb_sn'] = Utils.trim(document.forms['searchForm'].elements['bb_sn'].value);
+        listTable.filter['user_name'] = Utils.trim(document.forms['searchForm'].elements['user_name'].value);
+        listTable.filter['contact'] = Utils.trim(document.forms['searchForm'].elements['contact'].value);
+        listTable.filter['bb_status'] = document.forms['searchForm'].elements['bb_status'].value;
+        listTable.filter['page'] = 1;
+        listTable.filter['start_time'] = document.forms['searchForm'].elements['start_time'].value;
+        listTable.filter['end_time'] = document.forms['searchForm'].elements['end_time'].value;
+        listTable.loadList();
+    }
+
+
+    listTable.listCallback = function(result, txt)
+    {
+        if (result.error > 0)
+        {
+            alert(result.message);
+        }
+        else
+        {
+            try
+            {
+                document.getElementById('listDiv').innerHTML = result.content;
+                if (typeof result.filter == "object")
+                {
+                    listTable.filter = result.filter;
+                }
+                listTable.pageCount = result.page_count;
+            }
+            catch(e)
+            {
+                alert(e.message);
+            }
+        }
+    }
+
+    {/literal}
+
+    $("body").on("click", "#se_all", function() {
+
+        $("input[name='stop_h_userids']").prop("checked",$(this).prop("checked"));
+    });
+
+    //暂停H单
+    $("#stop_h_order").on("click", function() {
+
+        var order_ids = check_box();
+        if (order_ids == false) {
+
+            alert('请勾选需要暂停的订单');
+            return;
+        }
+
+        horder_ope(1, order_ids);
+
+    });
+
+    //恢复H单
+    $("#recovery_h_order").on("click", function() {
+
+        var order_ids = check_box();
+        if (order_ids == false) {
+
+            alert('请勾选需要恢复的订单');
+            return;
+        }
+
+        horder_ope(0, order_ids);
+    });
+
+    // 20180414 1636 暂停所有
+    $("#pause_all").on("click", function(){
+
+        var ch = confirm('确定暂停所有 H 单？');  
+        if (!ch) { return; }
+
+        horder_ope(1, '');
+
+    });
+
+    // 恢复所有
+    $("#recovery_all").on("click", function() {
+
+        var ch = confirm('确定恢复所有 H 单？');  
+        if (!ch) { return; }
+
+        horder_ope(0, '');
+    });
+
+    function check_box() {
+
+        var ids_obj = $("input[name='stop_h_userids']:checked");
+        var ids = ids_obj.val();
+        var arr_ = [];
+        if(!ids) {
+
+            return false;
+        }
+
+        $.each(ids_obj,function(k){
+            arr_[k] = $(this).val();
+        });
+
+        return arr_;
+    }
+
+    function horder_ope(type, oids) {
+
+        if (type != 1 && type != 0) {
+
+            alert("数据错误");
+            return false;
+        }
+
+        $.ajax({
+            type:"POST",
+            url:'mq_buyback.php',
+            data:{type:type, act:'stop_usersByH', order_ids:oids},
+            success: function(data,textStatus){
+                var info = jQuery.parseJSON(data);
+                if(info.flag==1){
+                    alert('操作成功');
+                    location.reload();
+                }else
+                {
+                    alert('操作失败!');
+                }
+            }
+        });
+    }
+</script>
+{if $full_page}
+{include file="pagefooter.htm"}
+{/if}

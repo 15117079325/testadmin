@@ -1,0 +1,199 @@
+<!-- $Id: start.htm 17216 2011-01-19 06:03:12Z liubo $ -->
+{include file="pageheader_bd.htm"}
+<!-- directory install start -->
+<ul id="lilist" style="padding:0; margin: 0; list-style-type:none; color: #CC0000;">
+    {foreach from=$warning_arr item=warning}
+    <li class="Start315">{$warning}</li>
+    {/foreach}
+</ul>
+<ul style="padding:0; margin: 0; list-style-type:none; color: #CC0000;">
+</ul>
+
+<div style="height:0px;line-height:0px;clear:both"></div>
+
+<style type="text/css">
+    /*201805291503V*/
+    .go {
+
+        color: #fff;
+        padding: 6px;
+        border: 1px solid #eb8a3d;
+        border-radius: 3px;
+        background: #eb8a3d;
+        cursor: pointer;
+    }
+    .tips {
+
+        height: 30px;
+        padding: 10px;
+        border: 1px solid #fff;
+        border-radius: 3px;
+        text-align: center;
+        color: #e21111;
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: 2px;
+    }
+</style>
+
+<!--{if $can_view_jifen }-->
+<!--<div class="list-div" >-->
+<!--    <div class="tips">-->
+<!--        设置成功后，请务必清除缓存！-->
+<!--    </div>-->
+<!--    <table cellspacing='1' cellpadding='3'>-->
+<!--        <tr>-->
+<!--            <th colspan="4" class="group-title">平台资金总览</th>-->
+<!--        </tr>-->
+<!--        <tr>-->
+<!--            <td>优惠券总额:  {$balance} </td>-->
+<!--            <td>火粉社区出售优惠券：{$trade_balance}</td>-->
+<!--            <td>待释放总额:  {$release_balance} </td>-->
+<!--        </tr>-->
+<!--        &lt;!&ndash;<tr>&ndash;&gt;-->
+<!--            &lt;!&ndash;<td>&ndash;&gt;-->
+<!--                &lt;!&ndash;<span class="go" onclick="location.href='chart_group.php'">查看详细数据</span>&ndash;&gt;-->
+<!--            &lt;!&ndash;</td>&ndash;&gt;-->
+<!--            &lt;!&ndash;<td></td>&ndash;&gt;-->
+<!--            &lt;!&ndash;<td></td>&ndash;&gt;-->
+<!--        &lt;!&ndash;</tr>&ndash;&gt;-->
+<!--    </table>-->
+<!--</div>-->
+
+<!--<div class="list-div" style="margin-top: 20px;">-->
+<!--    <table cellspacing='1' cellpadding='3'>-->
+<!--        <tr>-->
+<!--            <th colspan="4" class="group-title">昨日统计  [ {$start_time} - {$end_time} ] </th>-->
+<!--        </tr>-->
+<!--        <tr>-->
+<!--            <td>新增待释放优惠券:  {$new_release_balance} </td>-->
+<!--            <td>新增用户:  {$user_num} </td>-->
+<!--            <td>报单金额:  {$customs_money} </td>-->
+<!--        </tr>-->
+<!--        <tr>-->
+<!--            <td>求购总额:  {$buy_money} </td>-->
+<!--            <td>交易成功总额:  {$success_money} </td>-->
+<!--            <td></td>-->
+<!--        </tr>-->
+<!--    </table>-->
+<!--</div>-->
+<!--{/if}-->
+<div class="list-div">
+    <div>
+        <iframe src="http://stat.myls1688.com/#/index" style="width: 100%;height: 800px;border: none;background: #fff">
+
+        </iframe>
+    </div>
+</div>
+<script src='js/echarts-all.js'></script>
+<script>
+    var froms_chart = echarts.init(document.getElementById('froms_chart_div'));
+    froms_chart.setOption({$froms_option});
+    var order_chart = echarts.init(document.getElementById('order_chart_div'));
+    order_chart.setOption({$orders_option});
+    var sales_chart = echarts.init(document.getElementById('sales_chart_div'));
+    sales_chart.setOption({$sales_option});
+</script>
+<!-- end 升级 -->
+{literal}
+{insert_scripts files="../js/utils.js"}
+<script type="Text/Javascript" language="JavaScript">
+    <!--
+    onload = function()
+    {
+        /* 检查订单 */
+        startCheckOrder();
+    }
+    Ajax.call('index.php?is_ajax=1&act=main_api','', start_api, 'GET', 'JSON');
+    //Ajax.call('cloud.php?is_ajax=1&act=cloud_remind','', cloud_api, 'GET', 'JSON');
+    function start_api(result)
+    {
+        document.getElementById("php_ver").innerHTML = result.php_ver;
+        document.getElementById("mysql_ver").innerHTML = result.mysql_ver;
+        document.getElementById("ver").innerHTML = result.ver;
+        document.getElementById("pro_ver").innerHTML = result['version']['ver'];
+        document.getElementById("charset").innerHTML = result.charset;
+    }
+
+    function api_styel()
+    {
+        if(document.getElementById("Marquee") != null)
+        {
+            var Mar = document.getElementById("Marquee");
+            if (Browser.isIE)
+            {
+                Mar.style.height = "52px";
+            }
+            else
+            {
+                Mar.style.height = "36px";
+            }
+
+            var child_div=Mar.getElementsByTagName("div");
+
+            var picH = 16;//移动高度
+            var scrollstep=2;//移动步幅,越大越快
+            var scrolltime=30;//移动频度(毫秒)越大越慢
+            var stoptime=4000;//间断时间(毫秒)
+            var tmpH = 0;
+
+            function start()
+            {
+                if(tmpH < picH)
+                {
+                    tmpH += scrollstep;
+                    if(tmpH > picH )tmpH = picH ;
+                    Mar.scrollTop = tmpH;
+                    setTimeout(start,scrolltime);
+                }
+                else
+                {
+                    tmpH = 0;
+                    Mar.appendChild(child_div[0]);
+                    Mar.scrollTop = 0;
+                    setTimeout(start,stoptime);
+                }
+            }
+            setTimeout(start,stoptime);
+        }
+    }
+
+    var current_element = null;
+
+    function showDetail(a){
+        var mark = $(a).attr("mark");
+        if(mark == current_element){
+            $('#section_detail').hide();
+            current_element =null;
+        } else {
+            Ajax.call('index.php?is_ajax=1&act=total_detail&mark='+mark,'', show_detail_response, 'GET', 'JSON');
+            return true;
+        }
+
+    }
+
+    function show_detail_response(result){
+        if(result.error == 0){
+//            alert(JSON.stringify(result));
+            $('#sub_total_reg').html(result.content.m_reg);
+            $('#sub_total_active').html(result.content.m_active);
+            $('#sub_total_cert').html(result.content.m_real);
+            $('#sub_total_3w').html(result.content.m_3w);
+            $('#sub_total_10w').html(result.content.m_10w);
+            $('#sub_total_30w').html(result.content.m_30w);
+
+            $('#cnt_rank_0').html(result.content.cnt_rank_0);
+            $('#cnt_rank_1').html(result.content.cnt_rank_1);
+            $('#cnt_cert').html(result.content.cnt_cert);
+            $('#cnt_rank_2').html(result.content.cnt_rank_2);
+            $('#cnt_rank_3').html(result.content.cnt_rank_3);
+            $('#cnt_rank_4').html(result.content.cnt_rank_4);
+
+            $('#section_detail').show();
+            current_element = result.content.el;
+        }
+    }
+    //-->
+</script>
+{/literal}
+{include file="pagefooter.htm"}

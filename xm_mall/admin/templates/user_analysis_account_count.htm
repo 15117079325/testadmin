@@ -1,0 +1,102 @@
+<!-- $Id: user_area_stats.htm 2015-11-05 08:39:21Z langlibin $ -->
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+
+<div id="tabbar-div">
+    <p>
+        <span class="tab-back" onclick="javascript:location.href='user_added_stats.php'">新增会员</span>
+        <span class="tab-back" onclick="javascript:location.href='user_analysis_order_count.php'">会员分析</span>
+        <!--<span class="tab-back" onclick="javascript:location.href='user_analysis_scale.php'">会员规模分析</span>-->
+        <span class="tab-back" onclick="javascript:location.href='user_area_stats.php'">区域分布</span>
+        <span class="tab-front" onclick="javascript:location.href='user_analysis_account_count.php'">多号分析</span>
+    </p>
+</div>
+
+<div class="main-div">
+    <p style="margin: 10px">
+        1、数据于每天凌晨3点统计；<br />
+        2、根据转账时所在设备的IP地址和账号的关联数据进行分析；<br />
+        3、用户可能有多个IP、同一IP也可能登录多个账号；<br />
+        4、不同用户连接同一个WIIFI的时候IP地址相同；<br />
+    </p>
+</div>
+<div class="form-div">
+    <form action="javascript:search()" name="searchForm">
+
+        用户名:&nbsp;
+        <span style="position:relative"><input type="text" name="keywords" placeholder="手机号/用户名" /></span>
+
+        账户个数:&nbsp;
+        <span style="position:relative"><input type="text" name="user_count" /></span>
+
+        <input type="submit" value="{$lang.button_search}" class="button" />
+
+    </form>
+</div>
+<form method="post" action="" name="listForm" onsubmit="">
+    <div class="list-div" id="listDiv">
+        {/if}
+
+        <table cellpadding="3" cellspacing="1">
+            <tr>
+                <th>用户ID</th>
+                <th>用户名</th>
+                <th>真实姓名</th>
+                <th>手机</th>
+                <th>身份证</th>
+                <th>账户个数</th>
+                <th>IP个数</th>
+                <th>操作</th>
+            </tr>
+            {foreach from=$result item=item}
+            <tr>
+                <td align="center">{$item.user_id}</td>
+                <td align="center">{$item.user_name}</td>
+                <td align="center">{$item.real_name}</td>
+                <td align="center">{$item.mobile_phone}</td>
+                <td align="center">{$item.card}</td>
+                <td align="center">{$item.user_count}</td>
+                <td align="center">{$item.ip_count}</td>
+                <td align="center">
+                    <a href="user_analysis_account_count.php?act=view_detail&user_id={$item.user_id}" title="查看">
+                        <img src="images/icon_view.gif" border="0" height="16" width="16" />
+                    </a>
+                </td>
+            </tr>
+            {foreachelse}
+            <tr><td class="no-records" colspan="10">{$lang.no_records}</td></tr>
+            {/foreach}
+        </table>
+
+        <table cellpadding="4" cellspacing="0">
+            <tr>
+                <td align="right">{include file="page.htm"}</td>
+            </tr>
+        </table>
+
+        {if $full_page}
+    </div>
+</form>
+
+<script type="text/javascript" language="JavaScript">
+    listTable.recordCount = {$record_count};
+    listTable.pageCount = {$page_count};
+
+    {foreach from=$filter item=item key=key}
+    listTable.filter.{$key} = '{$item}';
+    {/foreach}
+    {literal}
+
+    function search()
+    {
+        listTable.filter.keywords = Utils.trim(document.forms['searchForm'].elements['keywords'].value);
+        listTable.filter.user_count = Utils.trim(document.forms['searchForm'].elements['user_count'].value);
+        listTable.filter.page = 1;
+        listTable.loadList();
+    }
+
+    {/literal}
+</script>
+{include file="pagefooter.htm"}
+{/if}

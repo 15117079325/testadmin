@@ -1,0 +1,106 @@
+<!-- $Id: agency_list.htm 14216 2008-03-10 02:27:21Z testyang $ -->
+
+{if $full_page}
+{include file="pageheader.htm"}
+{insert_scripts files="../js/utils.js,listtable.js"}
+<script type="text/javascript" src="../js/calendar.php?lang={$cfg_lang}"></script>
+<link href="../js/calendar/calendar.css" rel="stylesheet" type="text/css" />
+<!-- 订单搜索 -->
+<!--
+<div class="form-div">
+	<form action="javascript:searchApply()" name="searchForm">
+		<img src="images/icon_search.gif" width="26" height="22" border="0" alt="SEARCH" />
+		用户名<input name="user_name" type="text" id="user_name" size="15">
+		易物类型<select name="type" id="status">
+		<option value="-1" selected="selected">{$lang.select_please}</option>
+
+
+		<option value = '1'>易业商城</option>
+		<option value = '2'>精品商城</option>
+
+	</select>
+		日期<input type="text" name="add_time1" id="add_time1" class="input_te" readonly="readonly"   />
+		<input name="selbtn1" type="button" id="selbtn1" onclick="return showCalendar('add_time1', '%Y-%m-%d', '24', false, 'selbtn1');" value="{$lang.btn_select}" class="button"/>&nbsp;&nbsp;至&nbsp;&nbsp;
+		<input type="text" name="add_time2" id="add_time2" class="input_te" readonly="readonly" /><input name="selbtn2" type="button" id="selbtn2" onclick="return showCalendar('add_time2', '%Y-%m-%d', '24', false, 'selbtn2');" value="{$lang.btn_select}" class="button"/>
+		<input type="submit" value="{$lang.button_search}" class="button" />
+	</form>
+</div>-->
+
+<div class="form-div" style="height: 30px;">
+	<input type="button" value="返回" class="button" onclick="history.go(-1)" style="float:right"/>
+</div>
+<form method="post" action="" name="listForm" onsubmit="return confirm(batch_drop_confirm);">
+	<div class="list-div" id="listDiv">
+		{/if}
+
+		<table cellpadding="3" cellspacing="1">
+			<tr>
+				<th>推荐人用户名称</th>
+				<th>商品名称</th>
+				<th>易物类型</th>
+				<th>时间</th>
+				<th>提成金额</th>
+				<th>比率</th>
+			</tr>
+			{foreach from=$bonus_List item=invest}
+			<tr>
+				<td>{$invest.user_name}</td>
+				<td>{$invest.goods_name}</td>
+				<td>{if $invest.barter_type eq 1}易业商城{else}精品商城{/if}</td>
+				<td>{$invest.add_time}</td>
+				<td>{if $invest.barter_type eq 1}{$invest.shopping_amount}{else}{$invest.bonus_amount}{/if}</td>
+				<td>{$invest.percent}</td>
+				{foreachelse}
+			<tr><td class="no-records" colspan="10">{$lang.no_records}</td></tr>
+			{/foreach}
+		</table>
+		<table id="page-table" cellspacing="0">
+			<tr>
+				<td>
+				</td>
+				<td align="right" nowrap="true">
+					{include file="page.htm"}
+				</td>
+			</tr>
+		</table>
+
+		{if $full_page}
+	</div>
+</form>
+
+<script type="text/javascript" language="javascript">
+	<!--
+	listTable.recordCount = {$record_count};
+	listTable.pageCount = {$page_count};
+
+	{foreach from=$filter item=item key=key}
+	listTable.filter.{$key} = '{$item}';
+	{/foreach}
+
+	{literal}
+
+	onload = function()
+	{
+		// 开始检查订单
+		startCheckOrder();
+	}
+	/**
+	 * 搜索订单
+	 */
+	/*add ymm 2017-3-1 13:39*/
+	function searchApply()
+	{
+		listTable.filter['user_id'] = '{$user_id}';
+		listTable.filter['user_name'] = Utils.trim(document.forms['searchForm'].elements['user_name'].value);
+		listTable.filter['add_time1'] = Utils.trim(document.forms['searchForm'].elements['add_time1'].value);
+		listTable.filter['add_time2'] = Utils.trim(document.forms['searchForm'].elements['add_time2'].value);
+		listTable.filter['type'] = Utils.trim(document.forms['searchForm'].elements['type'].value);
+		listTable.filter['page'] = 1;
+		listTable.loadList();
+	}
+	/*end*/
+	{/literal}
+	//-->
+</script>
+{include file="pagefooter.htm"}
+{/if}

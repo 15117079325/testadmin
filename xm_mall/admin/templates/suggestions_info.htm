@@ -1,0 +1,117 @@
+<!-- $Id: comment_info.htm 16854 2009-12-07 06:20:09Z sxc_shop $ -->
+
+{include file="pageheader.htm"}
+<!-- comment content list -->
+<div class="main-div">
+  <table width="100%">
+    <tr>
+      <td>
+      <a href="mailto:{$msg.email}"><b>{if $msg.user_name}{$msg.user_name}{/if}</b>于</a>&nbsp;{$lang.from}
+      &nbsp;{$msg.add_time}&nbsp;发表意见
+    </td>
+    </tr>
+    <tr>
+      <td><hr color="#dadada" size="1"></td>
+    </tr>
+    <tr>
+      <td>
+        <div style="overflow:hidden; word-break:break-all;">{$msg.content}</div>
+        <div align="right"><b>IP地址</b>: {$msg.ip_address}</div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+{if $reply_info.content}
+<!-- reply content list -->
+<div class="main-div">
+  <table width="100%">
+    <tr>
+      <td>
+      <a href="mailto:{$msg.email}"><b>{$reply_info.user_name}</b></a>&nbsp;{$lang.from}
+      &nbsp;{$reply_info.add_time}&nbsp;{$lang.reply}
+    </td>
+    </tr>
+    <tr>
+      <td><hr color="#dadada" size="1"></td>
+    </tr>
+ 
+  </table>
+</div>
+{/if}
+<div class="main-div">
+<form method="post" action="suggestions_manage.php?act=action" name="theForm" onsubmit="return validate()">
+<table border="0" align="center">
+
+  <tr>
+    {if $msg.status eq 0}
+    <td>还没有管理员处理过这条意见...</td>
+    {else}
+    <td>
+      管理员&nbsp;<a href="mailto:{$msg.email}"><b>{$admin_info.user_name}</b></a>
+      &nbsp;{$msg.update_time}&nbsp;处理
+    </td>
+    {/if}
+
+  </tr>
+
+  <tr><th colspan="2">
+  <strong>处理状态</strong>
+  </th></tr>
+  <!--<tr>-->
+    <!--<td align="right">用户名:</td>-->
+    <!--<td><input name="user_name" type="text" value="{$admin_info.user_name}" size="30" readonly="true" /></td>-->
+  <!--</tr>-->
+  <!--<tr>-->
+    <!--<td align="right">Email:</td>-->
+    <!--<td><input name="email" type="text" value="{$admin_info.email}" size="30" readonly="true" /></td>-->
+  <!--</tr>-->
+  <tr>
+   <td align="right">
+   </td>
+    <td>
+      <input type="radio" name="status"   {if $msg.status eq 1 } checked="checked" {/if} value="1"  >已处理
+      <input type="radio" name="status"   {if $msg.status eq 0 } checked="checked" {/if} value="0">未处理
+    </td>
+  </tr>
+  <tr>
+    <td align="right">备注:</td>
+    <td><textarea name="remarks" cols="50" rows="4" wrap="VIRTUAL" style="margin:5px;">{$msg.remarks}</textarea><span class="require-field">*</span></td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td>
+      <input name="submit" type="submit" value="{$lang.button_submit}" class="button">
+      <input type="reset" value="{$lang.button_reset}" class="button">
+
+      <input type="hidden" name="id" value="{$msg.id}">
+
+    </td>
+  </tr>
+</table>
+</form>
+</div>
+{insert_scripts files="../js/utils.js,validator.js"}
+{literal}
+<script language="JavaScript">
+<!--
+document.forms['theForm'].elements['content'].focus();
+
+/**
+ * 检查表单输入的数据
+ */
+function validate()
+{
+    validator = new Validator("theForm");
+    validator.required("content",  no_content);
+    return validator.passed();
+}
+
+onload = function() {
+    // 开始检查订单
+    startCheckOrder();
+}
+//-->
+</script>
+{/literal}
+{include file="pagefooter.htm"}
